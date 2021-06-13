@@ -120,7 +120,7 @@ def euler(M, T, S, sigma, sigma2_val, r, num_series, rho, probability_threshold)
 
     p = np.random.uniform(low=0, high=1, size=num_series)
     corr = np.random.exponential(scale=1, size = num_series)
-
+1
     for m in range(1, M):
         sigma2 =random.gauss(sigma2_val, 0.5)
         for n in range(0, num_series):
