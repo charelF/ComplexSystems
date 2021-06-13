@@ -142,3 +142,5 @@ dmypy.json
 # Local History for Visual Studio Code
 .history/
 
+data/all_world_indices_clean.csv
+data/all_world_indices_dfgen5.csv
