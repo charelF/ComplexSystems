@@ -43,7 +43,6 @@ def cluster_info(arr):
             coord2k[i] = -1
         else:
             if new_cluster == True:
-                # so previous index was 0
                 k += 1
                 k2coord.append([i])
                 data.append(0)
