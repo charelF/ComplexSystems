@@ -22,8 +22,8 @@ def I(k, i, xi, A, a, h, k2coord, Gt):
     for j in k2coord[k]:  # for each coordinate in cluster k
         eta = random.uniform(-1,1)  # different for each cell
         sigma = Gt[j]
-        total += ((A*xi[k] + a*eta) * sigma) + h*zeta
-    return (1 / len(k2coord[k])) * total
+        total += ((A*xi[k] + a*eta) * sigma)
+    return ((1 / len(k2coord[k])) * total) + h*zeta
 
 @jit(nopython=True)
 def cluster_info(arr):
