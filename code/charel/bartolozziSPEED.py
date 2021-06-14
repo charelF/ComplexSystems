@@ -6,6 +6,9 @@ import random
 import matplotlib.pyplot as plt
 from numba import jit
 
+# np.random.seed(1)
+# random.seed(1)
+
 #%%
 
 @jit(nopython=True)
@@ -54,7 +57,6 @@ def cluster_info(arr):
     Ncl = len(data)  # number of clusters
     Nk = data  # Nk[k] = size of cluster k
     return Ncl, Nk, k2coord, coord2k
-#%%
 
 @jit(nopython=True)
 def generate(pd, pe, ph, pa, N0, N1, A, a, h):
@@ -138,38 +140,46 @@ def generate(pd, pe, ph, pa, N0, N1, A, a, h):
 
 if __name__ == "__main__":
 
-    N0 = 200
-    N1 = 200
+    N0 = 500
+    N1 = 100
 
-    for i in range(30):
-        for j in range(30):
-            G, x = generate(0.1, 0.1, 0.1, 0.1, N0, N1, 1, 1, 1)
-            print(i,j)
+    pd = 0.1
+    pe = 0.0001
+    ph = 0.1
 
-    # fig, (ax1, ax2) = plt.subplots(
-    #     ncols=1, nrows=2, figsize=(12,5), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0}
-    # )
-    # ax1.imshow(G.T, cmap="binary", interpolation="None", aspect="auto")
-    # # plt.colorbar()
+    pa = 0.5
 
-    # r = (x - np.mean(x)) / np.std(x)
-    # s = 100
-    # S = np.zeros_like(x)
-    # S[0] = s
-    # for i in range(1,N0):
-    #     # S[i] = S[i-1] + (S[i-1] * r[i])
-    #     S[i] = S[i-1] + (S[i-1] * r[i]/100) + 0.01
+    A = 2
+    a = 0.1
+    h = 0.1
 
-    # ax2.plot(S)
-    # ax2.grid(alpha=0.4)
+    G, x = generate(pd, pe, ph, pa, N0, N1, A, a, h)
+    
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=1, nrows=2, figsize=(12,5), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0}
+    )
+    ax1.imshow(G.T, cmap="binary", interpolation="None", aspect="auto")
+    # plt.colorbar()
 
-    # ax2.set_xlabel("time")
-    # # ax2.set_ylabel("standardised log returns")
-    # ax2.set_ylabel("close price")
-    # ax1.set_ylabel("agents")
+    r = (x - np.mean(x)) / np.std(x)
+    print(sum(r**2))
 
-    # plt.tight_layout()
-    # plt.show()
+    s = 100
+    S = np.zeros_like(x)
+    S[0] = s
+    for i in range(1,N0):
+        # S[i] = S[i-1] + (S[i-1] * r[i])
+        S[i] = S[i-1] + (S[i-1] * r[i]/100) + 0.01
+
+    ax2.plot(S)
+    ax2.grid(alpha=0.4)
+
+    ax2.set_xlabel("time")
+    ax2.set_ylabel("close price")
+    ax1.set_ylabel("agents")
+
+    plt.tight_layout()
+    plt.show()
 
 
 
