@@ -73,7 +73,7 @@ ph = 0.1 # vary
 
 pa = 0.5
 
-N0 = 20
+N0 = 200
 N1 = 10
 
 A = 2
@@ -84,9 +84,10 @@ G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
 
 P = np.zeros_like(G)
-V = np.zeros_like(G) # net worth
-# A = np.zeros_like(G) # account balance
-# A[0] = 1000
+N = np.zeros_like(G) # Net worth
+B = np.zeros_like(G) # account Balance
+B[0] = 1000  # everyone start with 1000 money
+N[0] = B[0]  # noone has stock initially
 
 X = np.zeros(N0)
 S = np.zeros(N0)
@@ -116,31 +117,18 @@ for t in range(N0):
     if t == N0-1:
         # last iteration, we stop
         # before we stop, traders buy back / sell all shares in portfolio at current price
-        # their worth (V) decreases if their portfolio P is negative (so they buyback shares)
-        # their worth (V) increases if their portfolio P is positive (so they sell shares)
-        # V[t] = V[t] + (P[t] * S[t])
-        # sellbuy = -P[t]
-        # V[t] = V[t] + (-P[t] * S[t])
-        # V[t] = V[t] + (P[t] * S[t]) * (-1)
-        # V[t] = P[t,i] * S[t]
-        # N[t] = N[t-1] + (P[t] * S[t])
-        # N[t] = (P[t] * S[t])
-        # P[t] = 0
+        final_trade = P[t] * S[t]
+        B[t] += final_trade
+        N[t] = B[t]
 
         break
 
     for i in range(N1):
         P[t+1,i] = P[t,i] + G[t,i]
-        # value of portfolio = (buy or sell) * (current price) * (-1)
-        # because buy = 1, but buying removes money so should be -1
-        # sell = -1 but sell adds money so 1
-        # V[t+1,i] = V[t,i] + (G[t,i] * S[t] * (-1))
-        # V[t,i] = P[t,i] * S[t]
-        # N[t,i] = - P[t,i]
-        # A[t] = P[t,i] * S[t]
-        # stock_value = P[t,i] * S[t]
-        # money_value = A[t]
-        # V[t] = 
+        # their next balance is their current balance minus
+        # their purchase (or sell) of stock at current price
+        B[t+1,i] = B[t,i] - (G[t,i] * S[t])
+        N[t+1,i] = B[t+1,i] + (P[t+1,i]*S[t])
 
         # traders update their stance
         if G[t,i] != 0:
@@ -181,12 +169,14 @@ for t in range(N0):
             if random.random() < pe:
                 G[t+1,i] = np.random.choice([-1,1])
 
+# B[:-1, :] = B[-1, :]
+
 fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(
-    ncols=1, nrows=5, figsize=(12,8), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0}
+    ncols=1, nrows=5, figsize=(12,8), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0.05}
 )
 im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
 im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
-im5 = ax5.imshow(V.T, cmap="summer", interpolation="None", aspect="auto")
+im5 = ax5.imshow(N.T, cmap="bwr", interpolation="None", aspect="auto")
 
 size = "15%"
 
@@ -231,6 +221,9 @@ ax5.set_ylabel("net worth")
 # fig.colorbar(im, cax=ax4)
 
 plt.tight_layout()
+plt.show()
+
+plt.plot(B[-1])
 plt.show()
 
 # %%
