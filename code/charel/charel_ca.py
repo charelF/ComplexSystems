@@ -12,18 +12,6 @@ random.seed(1)
 
 #%%
 
-def p(k, i, xi, A, a, h, k2coord, Gt):
-    return 1 / (1 + math.exp(-2 * I(k, i, xi, A, a, h, k2coord, Gt)))
-
-def I(k, i, xi, A, a, h, k2coord, Gt):
-    total = 0
-    zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
-    for j in k2coord[k]:  # for each coordinate in cluster k
-        eta = random.uniform(-1,1)  # different for each cell
-        sigma = Gt[j]
-        total += ((A*xi[k] + a*eta) * sigma) + h*zeta
-    return (1 / len(k2coord[k])) * total
-
 def cluster_info(arr):
     """ number of clusters (nonzero fields separated by 0s) in array
         and size of cluster
@@ -71,37 +59,38 @@ pd = 0.1
 pe = 0.0001
 ph = 0.1 # vary
 
-pa = 0.5
+pa = 1
 
 N0 = 100
 N1 = 10
 
-A = 2
-a = 0.1
-h = 0.1
+# A = 2
+# a = 0.1
+# h = 0.1
+A = 1
+a = 1
+h = 1
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
 
-P = np.zeros_like(G)
+initial_account_balance = 1000
+initial_stock_price = 100
+P = np.zeros_like(G) # portfolio: number of stocks
 N = np.zeros_like(G) # Net worth
 B = np.zeros_like(G) # account Balance
-B[0] = 1000  # everyone start with 1000 money
+B[0] = initial_account_balance  # everyone start with 1000 money
 N[0] = B[0]  # noone has stock initially
 
 X = np.zeros(N0)
 S = np.zeros(N0)
-S[0] = 100
+S[0] = initial_stock_price
 # X[0] = 1
 
 DRIFT = 0
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
-    # print(k2coord, coord2k)
-    # break
-    xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
-    # print(Ncl, Nk, k2coord, coord2k, xi)
 
     Xt = 0
     for k, size in enumerate(Nk):
@@ -112,9 +101,9 @@ for t in range(N0-1):
     X[t+1] = Xt/(10*N0)
     S[t+1] = S[t]*math.exp(X[t]) + DRIFT
 
-    for i in range(N1):
+    xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
 
-        
+    for i in range(N1):
         P[t+1,i] = P[t,i] + G[t,i]
         # their next balance is their current balance minus
         # their purchase (or sell) of stock at current price
@@ -124,14 +113,34 @@ for t in range(N0-1):
         # traders update their stance
         if G[t,i] != 0:
             k = coord2k[i]
-            # print(k)
-            pp = p(k, i, xi, A, a, h, k2coord, G[t])
-            if random.random() < pp:
+            total = 0
+            zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
+            for j in k2coord[k]:  # for each coordinate in cluster k
+                eta = random.uniform(-1,1)  # different for each cell
+                sigma = G[t,j]
+                cluster_influence = A*xi[k]
+                member_influence = a*eta
+                total += ((cluster_influence + member_influence) * sigma)
+            # self_influence = h*zeta
+
+            # perf = percentage increase or decrease (pos or neg val)
+            performance = (N[t,i] - initial_account_balance) / initial_account_balance
+            # strat in [-1,1], high --> prefers buying, low --> prefers selling
+            strategy = np.mean(P[:t+1,i])
+            # perf high --> continue with strat
+            # perf low --> change strat
+            # perf <0 --> switch sign of strat
+            bias = performance * strategy
+            self_influence = bias * h
+            
+            I = (1 / len(k2coord[k])) * total + self_influence
+            p = 1 / (1 + math.exp(-2 * I))
+
+            if random.random() < p:
                 G[t+1,i] = 1
             else:
                 G[t+1,i] = -1
 
-        
         # trader influences non-active neighbour to join
         if G[t,i] != 0:
             stance = G[t,i]
@@ -169,8 +178,8 @@ fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(
 )
 im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
 im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
-amnwc = np.max(np.abs(N-1000))  # absolute max net worth change
-vmin, vmax = 1000-amnwc, 1000+amnwc
+amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
+vmin, vmax = initial_account_balance-amnwc, initial_account_balance+amnwc
 im5 = ax5.imshow(N.T, cmap="bwr", interpolation="None", aspect="auto", vmin=vmin, vmax=vmax)
 
 size = "15%"
