@@ -59,6 +59,7 @@ def moving_average(x, w):
 
 #%%
 
+
 # pd = 0.1
 # pe = 0.0001
 # ph = 0.1 # vary
@@ -77,7 +78,7 @@ N1 = 100
 # a = 0.1
 # h = 0.1
 A = 1.8
-a = 1
+a = 2*A
 h = 1
 
 G = np.zeros(shape=(N0,N1))
@@ -171,9 +172,6 @@ for t in range(N0-1):
                     G[t+1,i] = -1
 
             else:
-
-
-
                  ## fair valuation 
                 ma_diff10 = (S_ma10[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
                 ma_diff_norm10 = 2 / (1 + np.exp(-2 * ma_diff10)) - 1
@@ -187,7 +185,6 @@ for t in range(N0-1):
                 AR_PERFORMANCE = 0.9 # portfolio agent
     
                 RANDOM_AGENT = random.random()
-                
                 
                 if RANDOM_AGENT <= AR_PROB:
                     VAL_RAND = np.random.normal(0,0.05)
@@ -218,6 +215,7 @@ for t in range(N0-1):
                             G[t+1,i] = -1
                     else:
                         G[t+1,i] = np.random.choice([-1,1])
+                
                 elif RANDOM_AGENT <= AR_PERFORMANCE:
                     # perf = percentage increase or decrease (pos or neg val)
                     performance = (N[t,i] - initial_account_balance) / initial_account_balance
@@ -235,7 +233,6 @@ for t in range(N0-1):
                         G[t+1,i] = 1
                     else:
                         G[t+1,i] = -1
-
                 else:
                     G[t+1,i] = np.random.choice([-1,0,1])
 
@@ -275,10 +272,11 @@ final_trade = P[-1] * S[-1]
 B[-1] += final_trade
 N[-1] = B[-1]
 
-fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(
+fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(
     ncols=1, nrows=5, figsize=(12,9), sharex=True, gridspec_kw = 
     {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1]}
 )
+
 im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
 im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
 amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
@@ -333,5 +331,55 @@ plt.tight_layout()
 plt.show()
 
 # %%
+def get_hurst_exponent(time_series, max_lag=20):
+    """Returns the Hurst Exponent of the time series"""
+    
+    lags = range(2, max_lag)
+    q_vals = np.linspace(1, 5, 50) 
+    S_q = np.zeros(len(lags))
+    reg = np.zeros(len(q_vals))
+    for i, q_val in enumerate(q_vals):
+        for j, lag in enumerate(lags):
+            S_q[j] = np.mean(np.abs(time_series[lag:]-time_series[:-lag])**q_val)
+         # calculate the slope of the log plot -> the Hurst Exponent
+        reg[i] = np.polyfit(np.log10(lags), np.log10(S_q), 1)[0]
 
+    return reg/q_vals, q_vals
+
+
+
+# %%
+import pandas as pd1
+df = pd1.read_csv("/Users/aleksander/Library/Mobile Documents/com~apple~CloudDocs/VSCODE/ComplexSystems/data/all_world_indices_clean.csv")
+
+
+df_spx = df[["Date", "SPX Index"]]
+df_spx["Date"] = pd1.to_datetime(df_spx["Date"], format='%d/%m/%Y')
+df_spx = df_spx.sort_values(by="Date")
+df_spx.reset_index(inplace=True)
+series_array = np.array(df_spx["SPX Index"])
+
+
+H, Q = get_hurst_exponent(series_array, 100)
+
+plt.figure(figsize=(15,5))
+plt.plot(Q,H*Q)
+# %%
+_H_, Q = get_hurst_exponent(S, 100)
+H[l,:] = _H_
+H_MEAN = np.mean(H,axis=0)
+H_STD = np.std(H, axis=0)
+
+
+Y1 = H_MEAN*Q+1.96*(H_STD)/np.sqrt(SIM)*H_MEAN*Q
+Y2 = H_MEAN*Q-1.96*(H_STD)/np.sqrt(SIM)*H_MEAN*Q
+
+plt.figure(figsize=(15,5))
+plt.plot(Q, Q*H_MEAN, color="r")
+plt.fill_between(x=Q, y1 =Y1, y2=Y2, alpha=0.4)
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.plot(S)
+plt.show()
 # %%
