@@ -7,13 +7,11 @@ import math
 import random
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import warnings
-warnings.simplefilter("ignore")
-
 np.random.seed(1)
 random.seed(1)
 
 #%%
+
 
 def cluster_info(arr):
     """ number of clusters (nonzero fields separated by 0s) in array
@@ -52,10 +50,6 @@ def cluster_info(arr):
     coord2k = {e:k for k,v in k2coord.items() for e in v}
     return Ncl, Nk, k2coord, coord2k
 
-def moving_average(x, w):
-    return np.convolve(x, np.ones(w), 'valid') / w
-
-
 
 #%%
 
@@ -68,13 +62,13 @@ ph = 0.1 # vary
 
 pa = 1
 
-N0 = 250
-N1 = 20
+N0 = 100
+N1 = 10
 
 # A = 2
 # a = 0.1
 # h = 0.1
-A = 2
+A = 1
 a = 1
 h = 1
 
@@ -92,10 +86,12 @@ N[0] = B[0]  # noone has stock initially
 X = np.zeros(N0)
 S = np.zeros(N0)
 S[0] = initial_stock_price
+S_ma = np.zeros(N0)
+S_ma[0] = initial_stock_price
 # X[0] = 1
 
 DRIFT = 0
-MAXLOOKBACK = 4
+MA_T = 20
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
@@ -108,6 +104,7 @@ for t in range(N0-1):
         Xt += size * tmp
     X[t+1] = Xt/(10*N0)
     S[t+1] = S[t]*math.exp(X[t]) + DRIFT
+    S_ma[t+1] = np.mean(S[max(0, (t+1 - MA_T)):t+1])
 
     xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
 
@@ -134,18 +131,22 @@ for t in range(N0-1):
             # perf = percentage increase or decrease (pos or neg val)
             performance = (N[t,i] - initial_account_balance) / initial_account_balance
             # strat in [-1,1], high --> prefers buying, low --> prefers selling
-            lookback = min(t,MAXLOOKBACK)
-            strategy = np.mean(G[t-lookback:t+1,i])
-            # print(strategy)
+            strategy = np.mean(P[:t+1,i])
+            # print(f"Perf {performance}, Strategy {strategy}")
             # perf high --> continue with strat
             # perf low --> change strat
             # perf <0 --> switch sign of strat
             bias = performance * strategy
-            trimmed_bias = max(-10, min(10, bias))
-            normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-            self_influence = normalised_bias * h #* zeta
+            normalised_bias = 2 / (1 + np.exp(-2 * bias)) - 1
+            self_influence = normalised_bias * h
             
-            I = (1 / len(k2coord[k])) * total + self_influence
+            ## fair valuation 
+            ma_diff = (S_ma[t+1] - S[t+1]) / np.std(S[:t+1])
+            ma_diff_norm = 2 / (1 + np.exp(-2 * ma_diff)) - 1
+            ##print(f"MA diff norm {ma_diff_norm}")
+
+            I = (1 / len(k2coord[k])) * total + self_influence + ma_diff_norm
+            ##print(f"Sum {(1 / len(k2coord[k])) * total}, self influence {self_influence}")
             p = 1 / (1 + math.exp(-2 * I))
 
             if random.random() < p:
@@ -186,8 +187,7 @@ B[-1] += final_trade
 N[-1] = B[-1]
 
 fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(
-    ncols=1, nrows=5, figsize=(12,9), sharex=True, gridspec_kw = 
-    {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1]}
+    ncols=1, nrows=5, figsize=(12,8), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0.05}
 )
 im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
 im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
@@ -210,7 +210,7 @@ cax2.get_xaxis().set_visible(False)
 cax2.get_yaxis().set_visible(False)
 
 cax3 = make_axes_locatable(ax3).append_axes('right', size=size, pad=0.05)
-cax3.hist(X, orientation="horizontal", bins=np.linspace(np.min(X), np.max(X), len(X)//5))
+cax3.hist(X, orientation="horizontal", bins=np.linspace(np.min(X), np.max(X), len(X)//2))
 cax3.get_xaxis().set_visible(False)
 cax3.get_yaxis().set_visible(False)
 
@@ -218,13 +218,10 @@ cax3.get_yaxis().set_visible(False)
 #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
 #     # cax.axis('off')
 
-
-ax2.plot(S, label="S")
-Ws = [10,25]
-for W in Ws:
-    ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
+ax2.plot(S, label="Close Price")
+ax2.plot(S_ma, label="MA")
 ax2.grid(alpha=0.4)
-ax2.legend(ncol=len(Ws)+1)
+ax2.legend()
 
 ax3.bar(np.arange(len(X)), X)
 ax3.grid(alpha=0.4)
@@ -241,5 +238,7 @@ ax5.set_ylabel("net worth")
 
 plt.tight_layout()
 plt.show()
+
+# %%
 
 # %%
