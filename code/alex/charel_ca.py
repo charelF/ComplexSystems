@@ -64,7 +64,7 @@ def moving_average(x, w):
 # ph = 0.1 # vary
 # pa = 1
 
-pd = 0.04 # active becomes inactive
+pd = 0.03 # active becomes inactive
 pe = 0.01 # probability of nontrader to enter the market
 ph = 0.0485  # probability that an active trader can turn one of his inactive neighbots into active
 pa = 0.5
@@ -76,7 +76,7 @@ N1 = 100
 # A = 2
 # a = 0.1
 # h = 0.1
-A = 2
+A = 1.8
 a = 1
 h = 1
 
@@ -171,6 +171,9 @@ for t in range(N0-1):
                     G[t+1,i] = -1
 
             else:
+
+
+
                  ## fair valuation 
                 ma_diff10 = (S_ma10[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
                 ma_diff_norm10 = 2 / (1 + np.exp(-2 * ma_diff10)) - 1
@@ -180,8 +183,8 @@ for t in range(N0-1):
                 ma_diff_norm30 = 2 / (1 + np.exp(-2 * ma_diff30)) - 1
                 
                 # RANDOM AGENT
-                AR_PROB = 0.95 # totally random behavior
-                AR_DONE = 0 # networth goal dependence
+                AR_PROB = 0.5 # MA agent
+                AR_PERFORMANCE = 0.9 # portfolio agent
     
                 RANDOM_AGENT = random.random()
                 
@@ -195,36 +198,49 @@ for t in range(N0-1):
                     p20 = 1 / (1 + math.exp(- ma_diff_norm20+VAL_RAND))
                     p30 = 1 / (1 + math.exp(- ma_diff_norm30+VAL_RAND))
                     
-                    if ((random.random()<=0.8) and (G[t,i]==0)):
+                    if ((random.random() <= 0.8) and (G[t,i]==0)):
                         G[t+1,i] = 0
 
-                    if RATIONAL_RANDOM <=0.05:
-                        if random.random()<=p30:
+                    if RATIONAL_RANDOM <= 0.05:
+                        if random.random() <= p30:
                             G[t+1,i] = +1
                         else:
                             G[t+1,i] = -1
-                    elif RATIONAL_RANDOM <=0.3:
-                        if random.random()<=p20:
+                    elif RATIONAL_RANDOM <= 0.3:
+                        if random.random() <= p20:
                             G[t+1,i] = +1
                         else:
                             G[t+1,i] = -1
-                    elif RATIONAL_RANDOM <=0.6:
-                        if random.random()<=p10:
+                    elif RATIONAL_RANDOM <= 0.6:
+                        if random.random() <= p10:
                             G[t+1,i] = +1
                         else:
                             G[t+1,i] = -1
                     else:
                         G[t+1,i] = np.random.choice([-1,1])
+                elif RANDOM_AGENT <= AR_PERFORMANCE:
+                    # perf = percentage increase or decrease (pos or neg val)
+                    performance = (N[t,i] - initial_account_balance) / initial_account_balance
+                    # strat in [-1,1], high --> prefers buying, low --> prefers selling
+                    lookback = min(t,MAXLOOKBACK)
+                    strategy = np.mean(G[t-lookback:t+1,i])
+                    bias = performance * strategy
+                    trimmed_bias = max(-10, min(10, bias))
+                    normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
+                    self_influence = normalised_bias * h #* zeta
+                    I = (1 / len(k2coord[k])) * total + self_influence 
+
+                    p = 1 / (1 + math.exp(-2 * I))
+                    if random.random() < p:
+                        G[t+1,i] = 1
+                    else:
+                        G[t+1,i] = -1
+
                 else:
                     G[t+1,i] = np.random.choice([-1,0,1])
-                # elif ((RANDOM_AGENT <= AR_DONE) and ( N[t,i] >=GOAL_NET_WORTH*N0) and(t>=20)):
-                #     past_actions = np.mean(G[t-10:t,i])
-                #     if past_actions > 0:
-                #         G[t+1,i] = -1
-                #     elif past_actions < 0:
-                #         G[t+1,i] = +1
-                #     # else:
-                #     #     G[t+1,i] = 0
+
+
+
 
 
         # trader influences non-active neighbour to join
@@ -294,7 +310,7 @@ cax3.get_yaxis().set_visible(False)
 
 
 ax2.plot(S, label="S")
-Ws = [10,20,30]
+Ws = [10]
 for W in Ws:
     ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
 ax2.grid(alpha=0.4)
