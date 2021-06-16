@@ -68,13 +68,13 @@ ph = 0.1 # vary
 
 pa = 1
 
-N0 = 250
+N0 = 500
 N1 = 20
 
 # A = 2
 # a = 0.1
 # h = 0.1
-A = 2
+A = 4
 a = 1
 h = 1
 
@@ -96,6 +96,9 @@ S[0] = initial_stock_price
 
 DRIFT = 0
 MAXLOOKBACK = 4
+
+# each of the N1 agents has different treshold
+treshold = np.random.random(size=N1)*10
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
@@ -123,27 +126,40 @@ for t in range(N0-1):
             k = coord2k[i]
             total = 0
             zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
+
+            change = (S[t] - initial_stock_price) / initial_stock_price
+
+            if abs(change) > treshold[i]:
+                stratchanger = -1
+            else:
+                stratchanger = 1
+
+
             for j in k2coord[k]:  # for each coordinate in cluster k
                 eta = random.uniform(-1,1)  # different for each cell
                 sigma = G[t,j]
-                cluster_influence = A*xi[k]
+                cluster_influence = A*xi[k]*stratchanger
                 member_influence = a*eta
                 total += ((cluster_influence + member_influence) * sigma)
-            # self_influence = h*zeta
+            self_influence = h*zeta
 
-            # perf = percentage increase or decrease (pos or neg val)
-            performance = (N[t,i] - initial_account_balance) / initial_account_balance
-            # strat in [-1,1], high --> prefers buying, low --> prefers selling
-            lookback = min(t,MAXLOOKBACK)
-            strategy = np.mean(G[t-lookback:t+1,i])
-            # print(strategy)
-            # perf high --> continue with strat
-            # perf low --> change strat
-            # perf <0 --> switch sign of strat
-            bias = performance * strategy
-            trimmed_bias = max(-10, min(10, bias))
-            normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-            self_influence = normalised_bias * h #* zeta
+
+            
+        
+        
+            # # perf = percentage increase or decrease (pos or neg val)
+            # performance = (N[t,i] - initial_account_balance) / initial_account_balance
+            # # strat in [-1,1], high --> prefers buying, low --> prefers selling
+            # lookback = min(t,MAXLOOKBACK)
+            # strategy = np.mean(G[t-lookback:t+1,i])
+            # # print(strategy)
+            # # perf high --> continue with strat
+            # # perf low --> change strat
+            # # perf <0 --> switch sign of strat
+            # bias = performance * strategy
+            # trimmed_bias = max(-10, min(10, bias))
+            # normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
+            # self_influence = normalised_bias * h #* zeta
             
             I = (1 / len(k2coord[k])) * total + self_influence
             p = 1 / (1 + math.exp(-2 * I))
@@ -220,7 +236,7 @@ cax3.get_yaxis().set_visible(False)
 
 
 ax2.plot(S, label="S")
-Ws = [10,25]
+Ws = [10,25,100]
 for W in Ws:
     ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
 ax2.grid(alpha=0.4)
@@ -241,5 +257,7 @@ ax5.set_ylabel("net worth")
 
 plt.tight_layout()
 plt.show()
+
+# %%
 
 # %%
