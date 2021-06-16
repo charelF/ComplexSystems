@@ -73,13 +73,19 @@ a = 2*A
 h = 1
 
 # NEW MODEL PARAMTERS
-CA_NM_AGENTS = 0.5 # split between original CA model and our new model, the higher the value the more CA is used
-MA_AGENTS = 0.5 # MA agent
+# DEFAULT
+CA_NM_AGENTS = 0.5   # split between original CA model and our new model, the higher the value the more CA is used
+MA_AGENTS = 0.5      # MA agent
 MA_AGENTS_DECISION_NOISE = 0.5
 MA10_AGENTS = 0.05   #  Required: MA2>MA4>MA10
 MA4_AGENTS = 0.3     # split between agents that use MA2,MA4 and MA10
 MA2_AGENTS = 0.6
-PERF_AGENTS = 0.9 # portfolio agent PERF_AGENTS must be > MA_AGENTS
+PERF_AGENTS = 0.9    # portfolio agent PERF_AGENTS must be > MA_AGENTS
+
+# CHANGES
+# MA_AGENTS = 0.1
+# MA10_AGENTS= 10
+
 
 
 G = np.zeros(shape=(N0,N1))
