@@ -104,11 +104,11 @@ def visualiseNICE(G, P, N, S, X, D):
     #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
     #     # cax.axis('off')
 
-    # ax2.set_yscale("log")
+    ax2.set_yscale("log")
     ax2.plot(S, label="S")
-    # Ws = [10,25,100]
-    # for W in Ws:
-    #     ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
+    Ws = [25]
+    for W in Ws:
+        ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
     ax2.grid(alpha=0.4)
     # ax2.legend(ncol=len(Ws)+1)
 
@@ -136,20 +136,20 @@ def visualiseNICE(G, P, N, S, X, D):
 
 #%%
 
-pd = 0
-pe = 0
-ph = 0
+pd = 0.1
+pe = 0.1
+ph = 0.1
 pa = 1
 
 N0 = 200
-N1 = 30
+N1 = 50
 
-A = 1
+A = 2
 a = 1
 h = 1
 
 initial_account_balance = 1000
-min_account_balance = -5000
+min_account_balance = 500
 initial_stock_price = 100
 
 drift = 0
@@ -157,8 +157,8 @@ max_look_back = 3
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-# G[0] = ((np.arange(0,N1)*3//N1)%3)-1
-G[0] = ((np.arange(0,N1)*1//N1)%3)-1
+G[0] = ((np.arange(0,N1)*6//N1)%3)-1
+# G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
 N = np.zeros_like(G) # Net worth
@@ -180,9 +180,9 @@ treshold = np.random.random(size=N1)*10
 investor_type = np.random.choice(
     a=[0,1,2], size=N1, replace=True,
     p = [
-        .25, # original CA
-        .25, # momentum strategy
-        .5, # market inverter
+        .7, # original CA
+        .2, # momentum strategy
+        .1, # market inverter
     ]
 )
 
@@ -240,14 +240,14 @@ for t in range(N0-1):
             # p = 1 / (1 + math.exp(-2 * I))
 
             # 3 agent model -------------------------------------------------------------------------
-            if investor_type[i] == 0: #i%3 == 0:
+            if investor_type[i] == 0:
                 # agent # 1
                 k = coord2k[i]
-                cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
-                self_influence = h * trunc(G[t,i],1,-1)
+                cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),3,-3) * xi[k]
+                self_influence = h * trunc(G[t,i],3,-3) * zeta
                 I = cluster_influence + self_influence
                 p = 1 / (1 + math.exp(-2 * I))
-            if investor_type[i] == 1: #i%3 == 0:
+            if investor_type[i] == 1:
                 performance = (N[t,i] - initial_account_balance) / initial_account_balance
                 lookback = min(t,max_look_back)
                 strategy = np.mean(G[t-lookback:t+1,i])
@@ -259,20 +259,20 @@ for t in range(N0-1):
                 self_influence = trimmed_bias * h
                 I = self_influence
                 p = 1 / (1 + math.exp(-2 * I))
-            if investor_type[i] == 2: #i%3 == 0:
+            if investor_type[i] == 2:
                 change = (S[t] - initial_stock_price) / initial_stock_price
                 trigger = treshold[i] - abs(change)  # when they decide to inverse others
                 # stock goes up --> change = pos --> they inverse others --> their I = negative
-                I = -change*5
+                I = trunc(-change*5, 10, -10)
                 p = 1 / (1 + math.exp(-2 * I))
 
 
             # =================================================================
             D[t,i] = I
             if random.random() < p:
-                G[t+1,i] = trunc(round(I),5,1)
+                G[t+1,i] = trunc(round(I),2,1)
             else:
-                G[t+1,i] = trunc(-round(I),-1,-5)
+                G[t+1,i] = trunc(-abs(round(I)),-1,-2)
             # if random.random() < p:
             #     G[t+1,i] = 1
             # else:
