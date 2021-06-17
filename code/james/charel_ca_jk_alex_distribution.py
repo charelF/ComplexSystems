@@ -64,7 +64,7 @@ def moving_average(x, w):
 
 pd = 0.03 # active becomes inactive
 pe = 0.01 # probability of nontrader to enter the market
-ph = 0.0485  # probability that an active trader can turn one of his inactive neighbots into active
+ph = 0.0685  # probability that an active trader can turn one of his inactive neighbots into active
 pa = 0.5
 
 N0 = 1000
@@ -80,7 +80,7 @@ G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
 ## Cell Rule Types 
 ## 3 = percolation, 4 = MA, 5=portfolio management
 T = np.zeros(shape=(N0,N1))
-T_temp = np.random.choice(a=[3, 4, 5], p=[0.5, 0.25, 0.25], size=N1, replace=True)
+T_temp = np.random.choice(a=[3, 4, 5], p=[0.5, 0.2, 0.3], size=N1, replace=True)
 ##T[0] = np.where(((G[0] == -1) | (G[0] == 1)), T_temp, 0)
 T[:,:] = T_temp
 
@@ -323,8 +323,6 @@ ax6.set_ylabel("agent types")
 
 plt.tight_layout()
 plt.show()
-
-print(T.T)
 
 # %%
 
