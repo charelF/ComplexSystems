@@ -104,7 +104,7 @@ def visualiseNICE(G, P, N, S, X, D):
     #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
     #     # cax.axis('off')
 
-    ax2.set_yscale("log")
+    # ax2.set_yscale("log")
     ax2.plot(S, label="S")
     # Ws = [10,25,100]
     # for W in Ws:
@@ -142,18 +142,18 @@ ph = 0
 pa = 1
 
 N0 = 200
-N1 = 15
+N1 = 30
 
 A = 1
 a = 1
 h = 1
 
 initial_account_balance = 1000
-min_account_balance = 500
+min_account_balance = -5000
 initial_stock_price = 100
 
 drift = 0
-max_look_back = 4
+max_look_back = 3
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
@@ -175,6 +175,16 @@ S[0] = initial_stock_price
 
 # each of the N1 agents has different treshold
 treshold = np.random.random(size=N1)*10
+
+
+investor_type = np.random.choice(
+    a=[0,1,2], size=N1, replace=True,
+    p = [
+        .25, # original CA
+        .25, # momentum strategy
+        .5, # market inverter
+    ]
+)
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
@@ -230,37 +240,39 @@ for t in range(N0-1):
             # p = 1 / (1 + math.exp(-2 * I))
 
             # 3 agent model -------------------------------------------------------------------------
-            if i%3 == 0:
+            if investor_type[i] == 0: #i%3 == 0:
                 # agent # 1
                 k = coord2k[i]
                 cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
                 self_influence = h * trunc(G[t,i],1,-1)
                 I = cluster_influence + self_influence
                 p = 1 / (1 + math.exp(-2 * I))
-            elif i%3 == 1:
+            if investor_type[i] == 1: #i%3 == 0:
                 performance = (N[t,i] - initial_account_balance) / initial_account_balance
                 lookback = min(t,max_look_back)
                 strategy = np.mean(G[t-lookback:t+1,i])
-                bias = performance * strategy
-                trimmed_bias = max(-10, min(10, bias))
-                normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-                self_influence = normalised_bias * h
+                bias = performance * strategy * 10
+                trimmed_bias = trunc(bias, 3, -3)
+                # trimmed_bias = max(-10, min(10, bias))
+                # normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
+                # self_influence = normalised_bias * h
+                self_influence = trimmed_bias * h
                 I = self_influence
                 p = 1 / (1 + math.exp(-2 * I))
-            elif i%3 == 2:
+            if investor_type[i] == 2: #i%3 == 0:
                 change = (S[t] - initial_stock_price) / initial_stock_price
                 trigger = treshold[i] - abs(change)  # when they decide to inverse others
                 # stock goes up --> change = pos --> they inverse others --> their I = negative
-                I = -change
+                I = -change*5
                 p = 1 / (1 + math.exp(-2 * I))
 
 
             # =================================================================
             D[t,i] = I
             if random.random() < p:
-                G[t+1,i] = max(1,round(I))
+                G[t+1,i] = trunc(round(I),5,1)
             else:
-                G[t+1,i] = min(-1,-round(I))
+                G[t+1,i] = trunc(-round(I),-1,-5)
             # if random.random() < p:
             #     G[t+1,i] = 1
             # else:
