@@ -60,10 +60,10 @@ def visualiseFAST(G, P, N, S, X, D):
     ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
     ax2.semilogy(S)
     plt.show()
-def visualiseNICE(G, P, N, S, X, D):
-    fig, (ax1,ax2,ax3,ax4,ax5,ax6) = plt.subplots(
-        ncols=1, nrows=6, figsize=(12,9), sharex=True, gridspec_kw = 
-        {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1]}
+def visualiseNICE(G, P, N, S, X, D, T, U):
+    fig, (ax1,ax2,ax3,ax4,ax5,ax6,ax7) = plt.subplots(
+        ncols=1, nrows=7, figsize=(12,12), sharex=True, gridspec_kw = 
+        {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1,1]}
     )
     im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
     im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
@@ -96,6 +96,9 @@ def visualiseNICE(G, P, N, S, X, D):
     cax6 = make_axes_locatable(ax6).append_axes('right', size=size, pad=0.05)
     cax6.get_xaxis().set_visible(False)
     cax6.get_yaxis().set_visible(False)
+    cax7 = make_axes_locatable(ax7).append_axes('right', size=size, pad=0.05)
+    cax7.get_xaxis().set_visible(False)
+    cax7.get_yaxis().set_visible(False)
 
     # for ax in (ax2,ax3):
     #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
@@ -111,6 +114,13 @@ def visualiseNICE(G, P, N, S, X, D):
 
     ax3.bar(np.arange(len(X)), X)
     ax3.grid(alpha=0.4)
+
+    ax7.set_yscale("symlog")
+    ax7.plot(T, label="stack")
+    ax7.plot(U, label="called shares")
+    ax7.grid(alpha=0.4)
+    ax7.legend()
+
 
     # if D.shape[1] < 25:
     #     ax6.plot(D, color="black", alpha=0.3)
@@ -141,7 +151,7 @@ ph = 0.1
 pa = 1
 
 N0 = 200
-N1 = 50
+N1 = 20
 
 A = 3
 a = 1
@@ -172,12 +182,16 @@ X = np.zeros(N0)
 S = np.zeros(N0)
 S[0] = initial_stock_price
 
+T = np.zeros(N0)
+U = np.zeros(N0)
+
 stack = 0
-max_to_be_sold = N1//10
+max_to_be_sold = N1//5
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
 
+    T[t] = stack
     Xt = 0
     for k, size in enumerate(Nk):
         tmp = 0
@@ -251,32 +265,37 @@ for t in range(N0-1):
             if random.random() < pe:
                 G[t+1,i] = np.random.choice([-1,1])
 
-        # margin call
-        # still_ok = N[t] > min_account_balance
-        margin_call = N[t] < min_account_balance
-        D[t+1] = margin_call
-        # those that are margin called become inactive
-        G[t+1] = G[t+1] * np.logical_not(margin_call) # those that are not remain
-        P[t+1] = P[t+1] * np.logical_not(margin_call) # those that are not keep their portfolio
-        # those that are are given the initial money again to start again
-        B[t+1] = (B[t+1] * np.logical_not(margin_call)) + (initial_account_balance * margin_call)
-        # they are also given their initial networth
-        N[t+1] = (N[t+1] * np.logical_not(margin_call)) + (initial_account_balance * margin_call)
-        # before we move on, we look at shares of those margin called
-        sum_called_shares = sum(P[t] * margin_call)
-        sum_margin_called = sum(margin_call)
-        # these shares are sold at current price
-        # Mt = sum_called_shares * sum_margin_called / (10*N0)
-        # X[t+1] = X[t+1] + Mt
-        # S[t+1] = S[t]*math.exp(X[t+1])
-        stack += sum_called_shares
+    # margin call
+    # still_ok = N[t] > min_account_balance
+    margin_call = N[t] < min_account_balance
+    D[t+1] = margin_call
+    # those that are margin called become inactive
+    G[t+1] = G[t+1] * np.logical_not(margin_call) # those that are not remain
+    P[t+1] = P[t+1] * np.logical_not(margin_call) # those that are not keep their portfolio
+    # those that are are given the initial money again to start again
+    B[t+1] = (B[t+1] * np.logical_not(margin_call)) + (initial_account_balance * margin_call)
+    # they are also given their initial networth
+    N[t+1] = (N[t+1] * np.logical_not(margin_call)) + (initial_account_balance * margin_call)
+    # before we move on, we look at shares of those margin called
+    sum_called_shares = sum(P[t] * margin_call)
+    sum_margin_called = sum(margin_call)
+    # these shares are sold at current price
+    # Mt = sum_called_shares * sum_margin_called / (10*N0)
+    # X[t+1] = X[t+1] + Mt
+    # S[t+1] = S[t]*math.exp(X[t+1])
+    # print(stack)
+    U[t+1] = sum_called_shares
+    # print(sum_called_shares)
+    stack += sum_called_shares
+    # print(stack)
+    # stack *= 0.8
 
 
 final_trade = P[-1] * S[-1]
 B[-1] += final_trade
 N[-1] = B[-1]
 
-visualiseNICE(G,P,N,S,X,D)
+visualiseNICE(G,P,N,S,X,D,T,U)
 # visualiseFAST(G,P,N,S,X,D)
 
 # %%
