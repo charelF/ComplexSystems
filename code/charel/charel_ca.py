@@ -52,53 +52,139 @@ def cluster_info(arr):
     coord2k = {e:k for k,v in k2coord.items() for e in v}
     return Ncl, Nk, k2coord, coord2k
 
+def trunc(X, high, low):
+    return min(high, max(X, low))
 def moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
 
+def visualiseFAST(G, P, N, S, X, D):
+    fig, (ax1,ax2) = plt.subplots(ncols=1, nrows=2, figsize=(12,4))
+    ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
+    ax2.semilogy(S)
+    plt.show()
 
+def visualiseNICE(G, P, N, S, X, D):
+    fig, (ax1,ax2,ax3,ax4,ax5,ax6) = plt.subplots(
+        ncols=1, nrows=6, figsize=(12,9), sharex=True, gridspec_kw = 
+        {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1]}
+    )
+    im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
+    im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
+    amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
+    vmin, vmax = initial_account_balance-amnwc, initial_account_balance+amnwc
+    im5 = ax5.imshow(N.T, cmap="bwr", interpolation="None", aspect="auto", vmin=vmin, vmax=vmax)
+
+    size = "15%"
+
+    cax1 = make_axes_locatable(ax1).append_axes('right', size=size, pad=0.05)
+    fig.colorbar(im1, cax=cax1, orientation='vertical')
+    cax4 = make_axes_locatable(ax4).append_axes('right', size=size, pad=0.05)
+    fig.colorbar(im4, cax=cax4, orientation='vertical')
+    cax5 = make_axes_locatable(ax5).append_axes('right', size=size, pad=0.05)
+    fig.colorbar(im5, cax=cax5, orientation='vertical')
+
+    cax2 = make_axes_locatable(ax2).append_axes('right', size=size, pad=0.05)
+    cax2.hist(S, orientation="horizontal", bins=np.linspace(np.min(S), np.max(S), len(S)//2))
+    # cax2.hist(np.log10(S), orientation="horizontal", bins=np.logspace(np.log10(np.min(S)), np.log10(np.max(S)), len(S)//2))
+    # cax2.set_xscale("log")
+    # cax2.set_yscale("log")
+    cax2.get_xaxis().set_visible(False)
+    cax2.get_yaxis().set_visible(False)
+
+    cax3 = make_axes_locatable(ax3).append_axes('right', size=size, pad=0.05)
+    cax3.hist(X, orientation="horizontal", bins=np.linspace(np.min(X), np.max(X), len(X)//5))
+    cax3.get_xaxis().set_visible(False)
+    cax3.get_yaxis().set_visible(False)
+
+    cax6 = make_axes_locatable(ax6).append_axes('right', size=size, pad=0.05)
+    cax6.get_xaxis().set_visible(False)
+    cax6.get_yaxis().set_visible(False)
+
+    # for ax in (ax2,ax3):
+    #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
+    #     # cax.axis('off')
+
+    # ax2.set_yscale("log")
+    ax2.plot(S, label="S")
+    # Ws = [10,25,100]
+    # for W in Ws:
+    #     ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
+    ax2.grid(alpha=0.4)
+    # ax2.legend(ncol=len(Ws)+1)
+
+    ax3.bar(np.arange(len(X)), X)
+    ax3.grid(alpha=0.4)
+
+    ax6.plot(D, color="black", alpha=0.3)
+    ax6.plot(np.mean(D,axis=1), color="black", alpha=1)
+    ax6.grid(alpha=0.4)
+    
+
+    ax6.set_xlabel("time")
+    # ax2.set_ylabel("standardised log returns")
+    ax2.set_ylabel("close price")
+    ax1.set_ylabel("agents")
+    ax3.set_ylabel("log return")
+    ax4.set_ylabel("portfolio")
+    ax5.set_ylabel("net worth")
+    ax6.set_ylabel("influence (I)")
+
+    # fig.colorbar(im, cax=ax4)
+
+    plt.tight_layout()
+    plt.show()
 
 #%%
 
-# pd = 0.25
-# pe = 0.02
-# ph = 0.18 # vary
-pd = 0.1
-pe = 0.0001
-ph = 0.1 # vary
-
+pd = 0
+pe = 0
+ph = 0
 pa = 1
 
-N0 = 500
-N1 = 20
+N0 = 200
+N1 = 30
 
-# A = 2
-# a = 0.1
-# h = 0.1
-A = 4
+A = 1
 a = 1
 h = 1
 
+initial_account_balance = 1000
+min_account_balance = -5000
+initial_stock_price = 100
+
+drift = 0
+max_look_back = 3
+
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
+# G[0] = ((np.arange(0,N1)*3//N1)%3)-1
+G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
-initial_account_balance = 1000
-initial_stock_price = 100
 P = np.zeros_like(G) # portfolio: number of stocks
 N = np.zeros_like(G) # Net worth
-B = np.zeros_like(G) # account Balance
+B = np.zeros_like(G) # acc balance
+
 B[0] = initial_account_balance  # everyone start with 1000 money
 N[0] = B[0]  # noone has stock initially
+
+D = np.zeros_like(G)
 
 X = np.zeros(N0)
 S = np.zeros(N0)
 S[0] = initial_stock_price
-# X[0] = 1
-
-DRIFT = 0
-MAXLOOKBACK = 4
 
 # each of the N1 agents has different treshold
 treshold = np.random.random(size=N1)*10
+
+
+investor_type = np.random.choice(
+    a=[0,1,2], size=N1, replace=True,
+    p = [
+        .25, # original CA
+        .25, # momentum strategy
+        .5, # market inverter
+    ]
+)
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
@@ -110,7 +196,7 @@ for t in range(N0-1):
             tmp += G[t,i]
         Xt += size * tmp
     X[t+1] = Xt/(10*N0)
-    S[t+1] = S[t]*math.exp(X[t]) + DRIFT
+    S[t+1] = S[t]*math.exp(X[t]) + drift
 
     xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
 
@@ -121,53 +207,76 @@ for t in range(N0-1):
         B[t+1,i] = B[t,i] - (G[t,i] * S[t])
         N[t+1,i] = B[t,i] + (P[t,i]*S[t])
 
-        # traders update their stance
         if G[t,i] != 0:
-            k = coord2k[i]
-            total = 0
-            zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
+            # =================================================================
 
-            change = (S[t] - initial_stock_price) / initial_stock_price
+            # original -------------------------------------------------------------------------------
+            # k = coord2k[i]
+            # total = 0
+            # zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
+            # for j in k2coord[k]:  # for each coordinate in cluster k
+            #     eta = random.uniform(-1,1)  # different for each cell
+            #     sigma = G[t,j]
+            #     cluster_influence = A*xi[k]
+            #     member_influence = 0#a*eta
+            #     total += ((cluster_influence + member_influence) * sigma)
+            # self_influence = h*zeta
+            # I = (1 / len(k2coord[k])) * total + self_influence
+            # p = 1 / (1 + math.exp(-2 * I))
 
-            if abs(change) > treshold[i]:
-                stratchanger = -1
-            else:
-                stratchanger = 1
+            # same code but cleaner (only difference: no member influence) ----------------------------
+            # k = coord2k[i]
+            # zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
+            # cluster_influence = A * xi[k] * np.mean(G[t,k2coord[k]])
+            # self_influence = h * zeta
+            # I = cluster_influence + self_influence
+            # p = 1 / (1 + math.exp(-2 * I))
+
+            # minimal version -------------------------------------------------------------------------
+            # k = coord2k[i]
+            # cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
+            # self_influence = h * trunc(G[t,i],1,-1)
+            # I = cluster_influence + self_influence
+            # p = 1 / (1 + math.exp(-2 * I))
+
+            # 3 agent model -------------------------------------------------------------------------
+            if investor_type[i] == 0: #i%3 == 0:
+                # agent # 1
+                k = coord2k[i]
+                cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
+                self_influence = h * trunc(G[t,i],1,-1)
+                I = cluster_influence + self_influence
+                p = 1 / (1 + math.exp(-2 * I))
+            if investor_type[i] == 1: #i%3 == 0:
+                performance = (N[t,i] - initial_account_balance) / initial_account_balance
+                lookback = min(t,max_look_back)
+                strategy = np.mean(G[t-lookback:t+1,i])
+                bias = performance * strategy * 10
+                trimmed_bias = trunc(bias, 3, -3)
+                # trimmed_bias = max(-10, min(10, bias))
+                # normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
+                # self_influence = normalised_bias * h
+                self_influence = trimmed_bias * h
+                I = self_influence
+                p = 1 / (1 + math.exp(-2 * I))
+            if investor_type[i] == 2: #i%3 == 0:
+                change = (S[t] - initial_stock_price) / initial_stock_price
+                trigger = treshold[i] - abs(change)  # when they decide to inverse others
+                # stock goes up --> change = pos --> they inverse others --> their I = negative
+                I = -change*5
+                p = 1 / (1 + math.exp(-2 * I))
 
 
-            for j in k2coord[k]:  # for each coordinate in cluster k
-                eta = random.uniform(-1,1)  # different for each cell
-                sigma = G[t,j]
-                cluster_influence = A*xi[k]*stratchanger
-                member_influence = a*eta
-                total += ((cluster_influence + member_influence) * sigma)
-            self_influence = h*zeta
-
-
-            
-        
-        
-            # # perf = percentage increase or decrease (pos or neg val)
-            # performance = (N[t,i] - initial_account_balance) / initial_account_balance
-            # # strat in [-1,1], high --> prefers buying, low --> prefers selling
-            # lookback = min(t,MAXLOOKBACK)
-            # strategy = np.mean(G[t-lookback:t+1,i])
-            # # print(strategy)
-            # # perf high --> continue with strat
-            # # perf low --> change strat
-            # # perf <0 --> switch sign of strat
-            # bias = performance * strategy
-            # trimmed_bias = max(-10, min(10, bias))
-            # normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-            # self_influence = normalised_bias * h #* zeta
-            
-            I = (1 / len(k2coord[k])) * total + self_influence
-            p = 1 / (1 + math.exp(-2 * I))
-
+            # =================================================================
+            D[t,i] = I
             if random.random() < p:
-                G[t+1,i] = 1
+                G[t+1,i] = trunc(round(I),5,1)
             else:
-                G[t+1,i] = -1
+                G[t+1,i] = trunc(-round(I),-1,-5)
+            # if random.random() < p:
+            #     G[t+1,i] = 1
+            # else:
+            #     G[t+1,i] = -1
 
         # trader influences non-active neighbour to join
         if G[t,i] != 0:
@@ -175,11 +284,11 @@ for t in range(N0-1):
             if random.random() < ph:
                 if G[t,(i-1)%N1] == 0 and G[t,(i+1)%N1] == 0:
                     ni = np.random.choice([-1,1])
-                    G[t+1,(i+ni)%N1] = stance#random.choice([-1,1])
+                    G[t+1,(i+ni)%N1] = np.random.choice([-1,1])
                 elif G[t,(i-1)%N1] == 0:
-                    G[t+1,(i-1)%N1] = stance#random.choice([-1,1])
+                    G[t+1,(i-1)%N1] = np.random.choice([-1,1])
                 elif G[t,(i+1)%N1] == 0:
-                    G[t+1,(i+1)%N1] = stance#random.choice([-1,1])
+                    G[t+1,(i+1)%N1] = np.random.choice([-1,1])
                 else:
                     continue
 
@@ -197,67 +306,21 @@ for t in range(N0-1):
             if random.random() < pe:
                 G[t+1,i] = np.random.choice([-1,1])
 
+        # margin call
+        still_ok = N[t] > min_account_balance
+        G[t+1] = G[t+1] * still_ok
+
 final_trade = P[-1] * S[-1]
 B[-1] += final_trade
 N[-1] = B[-1]
 
-fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(
-    ncols=1, nrows=5, figsize=(12,9), sharex=True, gridspec_kw = 
-    {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1]}
-)
-im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
-im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
-amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
-vmin, vmax = initial_account_balance-amnwc, initial_account_balance+amnwc
-im5 = ax5.imshow(N.T, cmap="bwr", interpolation="None", aspect="auto", vmin=vmin, vmax=vmax)
-
-size = "15%"
-
-cax1 = make_axes_locatable(ax1).append_axes('right', size=size, pad=0.05)
-fig.colorbar(im1, cax=cax1, orientation='vertical')
-cax4 = make_axes_locatable(ax4).append_axes('right', size=size, pad=0.05)
-fig.colorbar(im4, cax=cax4, orientation='vertical')
-cax5 = make_axes_locatable(ax5).append_axes('right', size=size, pad=0.05)
-fig.colorbar(im5, cax=cax5, orientation='vertical')
-
-cax2 = make_axes_locatable(ax2).append_axes('right', size=size, pad=0.05)
-cax2.hist(S, orientation="horizontal", bins=np.linspace(np.min(S), np.max(S), len(S)//2))
-cax2.get_xaxis().set_visible(False)
-cax2.get_yaxis().set_visible(False)
-
-cax3 = make_axes_locatable(ax3).append_axes('right', size=size, pad=0.05)
-cax3.hist(X, orientation="horizontal", bins=np.linspace(np.min(X), np.max(X), len(X)//5))
-cax3.get_xaxis().set_visible(False)
-cax3.get_yaxis().set_visible(False)
-
-# for ax in (ax2,ax3):
-#     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
-#     # cax.axis('off')
-
-
-ax2.plot(S, label="S")
-Ws = [10,25,100]
-for W in Ws:
-    ax2.plot(np.arange(W-1, len(S)), moving_average(S, W), label=f"MA{W}")
-ax2.grid(alpha=0.4)
-ax2.legend(ncol=len(Ws)+1)
-
-ax3.bar(np.arange(len(X)), X)
-ax3.grid(alpha=0.4)
-
-ax4.set_xlabel("time")
-# ax2.set_ylabel("standardised log returns")
-ax2.set_ylabel("close price")
-ax1.set_ylabel("agents")
-ax3.set_ylabel("log return")
-ax4.set_ylabel("portfolio")
-ax5.set_ylabel("net worth")
-
-# fig.colorbar(im, cax=ax4)
-
-plt.tight_layout()
-plt.show()
+visualiseNICE(G,P,N,S,X,D)
+# visualiseFAST(G,P,N,S,X,D)
 
 # %%
 
 # %%
+
+# %%
+
+
