@@ -51,24 +51,21 @@ def cluster_info(arr):
     Nk = data  # Nk[k] = size of cluster k
     coord2k = {e:k for k,v in k2coord.items() for e in v}
     return Ncl, Nk, k2coord, coord2k
-
 def trunc(X, high, low):
     return min(high, max(X, low))
 def moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
-
 def visualiseFAST(G, P, N, S, X, D):
     fig, (ax1,ax2) = plt.subplots(ncols=1, nrows=2, figsize=(12,4))
     ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
     ax2.semilogy(S)
     plt.show()
-
 def visualiseNICE(G, P, N, S, X, D):
     fig, (ax1,ax2,ax3,ax4,ax5,ax6) = plt.subplots(
         ncols=1, nrows=6, figsize=(12,9), sharex=True, gridspec_kw = 
         {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1]}
     )
-    im1 = ax1.imshow(G.T, cmap="bwr", interpolation="None", aspect="auto")
+    im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
     im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
     amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
     vmin, vmax = initial_account_balance-amnwc, initial_account_balance+amnwc
@@ -138,14 +135,14 @@ def visualiseNICE(G, P, N, S, X, D):
 #%%
 
 pd = 0.1
-pe = 0.1
+pe = 0.01
 ph = 0.1
 pa = 1
 
 N0 = 200
-N1 = 100
+N1 = 50
 
-A = 2
+A = 3
 a = 1
 h = 1
 
@@ -158,7 +155,7 @@ max_look_back = 3
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-G[0] = ((np.arange(0,N1)*6//N1)%3)-1
+G[0] = ((np.arange(0,N1)*12//N1)%3)-1
 # G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
@@ -173,19 +170,6 @@ D = np.zeros_like(G)
 X = np.zeros(N0)
 S = np.zeros(N0)
 S[0] = initial_stock_price
-
-# each of the N1 agents has different treshold
-treshold = np.random.random(size=N1)*10
-
-
-investor_type = np.random.choice(
-    a=[0,1,2], size=N1, replace=True,
-    p = [
-        .7, # original CA
-        .2, # momentum strategy
-        .1, # market inverter
-    ]
-)
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
@@ -209,75 +193,20 @@ for t in range(N0-1):
         N[t+1,i] = B[t,i] + (P[t,i]*S[t])
 
         if G[t,i] != 0:
-            # =================================================================
-
-            # original -------------------------------------------------------------------------------
-            # k = coord2k[i]
-            # total = 0
-            # zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
-            # for j in k2coord[k]:  # for each coordinate in cluster k
-            #     eta = random.uniform(-1,1)  # different for each cell
-            #     sigma = G[t,j]
-            #     cluster_influence = A*xi[k]
-            #     member_influence = 0#a*eta
-            #     total += ((cluster_influence + member_influence) * sigma)
-            # self_influence = h*zeta
-            # I = (1 / len(k2coord[k])) * total + self_influence
-            # p = 1 / (1 + math.exp(-2 * I))
 
             # same code but cleaner (only difference: no member influence) ----------------------------
-            # k = coord2k[i]
-            # zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
-            # cluster_influence = A * xi[k] * np.mean(G[t,k2coord[k]])
-            # self_influence = h * zeta
-            # I = cluster_influence + self_influence
-            # p = 1 / (1 + math.exp(-2 * I))
+            k = coord2k[i]
+            zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
+            cluster_influence = A * xi[k] * np.mean(G[t,k2coord[k]])
+            self_influence = h * zeta
+            I = cluster_influence + self_influence
+            p = 1 / (1 + math.exp(-2 * I))
 
-            # minimal version -------------------------------------------------------------------------
-            # k = coord2k[i]
-            # cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
-            # self_influence = h * trunc(G[t,i],1,-1)
-            # I = cluster_influence + self_influence
-            # p = 1 / (1 + math.exp(-2 * I))
-
-            # 3 agent model -------------------------------------------------------------------------
-            if investor_type[i] == 0:
-                # agent # 1
-                k = coord2k[i]
-                cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),3,-3) * xi[k]
-                self_influence = h * trunc(G[t,i],3,-3) * zeta
-                I = cluster_influence + self_influence
-                p = 1 / (1 + math.exp(-2 * I))
-            if investor_type[i] == 1:
-                performance = (N[t,i] - initial_account_balance) / initial_account_balance
-                lookback = min(t,max_look_back)
-                strategy = np.mean(G[t-lookback:t+1,i])
-                bias = performance * strategy * 10
-                trimmed_bias = trunc(bias, 3, -3)
-                # trimmed_bias = max(-10, min(10, bias))
-                # normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-                # self_influence = normalised_bias * h
-                self_influence = trimmed_bias * h
-                I = self_influence
-                p = 1 / (1 + math.exp(-2 * I))
-            if investor_type[i] == 2:
-                change = (S[t] - initial_stock_price) / initial_stock_price
-                trigger = treshold[i] - abs(change)  # when they decide to inverse others
-                # stock goes up --> change = pos --> they inverse others --> their I = negative
-                I = trunc(-change*5, 10, -10)
-                p = 1 / (1 + math.exp(-2 * I))
-
-
-            # =================================================================
             D[t,i] = I
             if random.random() < p:
-                G[t+1,i] = trunc(round(I),2,1)
+                G[t+1,i] = 1
             else:
-                G[t+1,i] = trunc(-abs(round(I)),-1,-2)
-            # if random.random() < p:
-            #     G[t+1,i] = 1
-            # else:
-            #     G[t+1,i] = -1
+                G[t+1,i] = -1
 
         # trader influences non-active neighbour to join
         if G[t,i] != 0:
