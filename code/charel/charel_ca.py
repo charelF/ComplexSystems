@@ -115,7 +115,8 @@ def visualiseNICE(G, P, N, S, X, D):
     ax3.bar(np.arange(len(X)), X)
     ax3.grid(alpha=0.4)
 
-    ax6.plot(D)
+    ax6.plot(D, color="black", alpha=0.3)
+    ax6.plot(np.mean(D,axis=1), color="black", alpha=1)
     ax6.grid(alpha=0.4)
     
 
@@ -126,7 +127,7 @@ def visualiseNICE(G, P, N, S, X, D):
     ax3.set_ylabel("log return")
     ax4.set_ylabel("portfolio")
     ax5.set_ylabel("net worth")
-    ax5.set_ylabel("decision (p)")
+    ax6.set_ylabel("influence (I)")
 
     # fig.colorbar(im, cax=ax4)
 
@@ -140,7 +141,7 @@ pe = 0
 ph = 0
 pa = 1
 
-N0 = 40
+N0 = 200
 N1 = 15
 
 A = 1
@@ -148,15 +149,16 @@ a = 1
 h = 1
 
 initial_account_balance = 1000
-min_account_balance = 900
+min_account_balance = 500
 initial_stock_price = 100
 
-DRIFT = 0
-MAXLOOKBACK = 4
+drift = 0
+max_look_back = 4
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-G[0] = ((np.arange(0,N1)*3//N1)%3)-1
+# G[0] = ((np.arange(0,N1)*3//N1)%3)-1
+G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
 N = np.zeros_like(G) # Net worth
@@ -174,8 +176,6 @@ S[0] = initial_stock_price
 # each of the N1 agents has different treshold
 treshold = np.random.random(size=N1)*10
 
-
-
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
 
@@ -186,7 +186,7 @@ for t in range(N0-1):
             tmp += G[t,i]
         Xt += size * tmp
     X[t+1] = Xt/(10*N0)
-    S[t+1] = S[t]*math.exp(X[t]) + DRIFT
+    S[t+1] = S[t]*math.exp(X[t]) + drift
 
     xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
 
@@ -198,6 +198,7 @@ for t in range(N0-1):
         N[t+1,i] = B[t,i] + (P[t,i]*S[t])
 
         if G[t,i] != 0:
+            # =================================================================
 
             # original -------------------------------------------------------------------------------
             # k = coord2k[i]
@@ -222,75 +223,44 @@ for t in range(N0-1):
             # p = 1 / (1 + math.exp(-2 * I))
 
             # minimal version -------------------------------------------------------------------------
-            k = coord2k[i]
-            cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
-            self_influence = h * trunc(G[t,i],1,-1)
-            I = cluster_influence + self_influence
-            p = 1 / (1 + math.exp(-2 * I))
-            
+            # k = coord2k[i]
+            # cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
+            # self_influence = h * trunc(G[t,i],1,-1)
+            # I = cluster_influence + self_influence
+            # p = 1 / (1 + math.exp(-2 * I))
+
+            # 3 agent model -------------------------------------------------------------------------
+            if i%3 == 0:
+                # agent # 1
+                k = coord2k[i]
+                cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),1,-1)
+                self_influence = h * trunc(G[t,i],1,-1)
+                I = cluster_influence + self_influence
+                p = 1 / (1 + math.exp(-2 * I))
+            elif i%3 == 1:
+                performance = (N[t,i] - initial_account_balance) / initial_account_balance
+                lookback = min(t,max_look_back)
+                strategy = np.mean(G[t-lookback:t+1,i])
+                bias = performance * strategy
+                trimmed_bias = max(-10, min(10, bias))
+                normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
+                self_influence = normalised_bias * h
+                I = self_influence
+                p = 1 / (1 + math.exp(-2 * I))
+            elif i%3 == 2:
+                change = (S[t] - initial_stock_price) / initial_stock_price
+                trigger = treshold[i] - abs(change)  # when they decide to inverse others
+                # stock goes up --> change = pos --> they inverse others --> their I = negative
+                I = -change
+                p = 1 / (1 + math.exp(-2 * I))
 
 
-        # # traders update their stance
-        # if G[t,i] != 0:
-        #     k = coord2k[i]
-        #     total = 0
-        #     # zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
-
-        #     # change = (S[t] - initial_stock_price) / initial_stock_price
-        #     # stratchanger = treshold[i] - abs(change)
-        #     # stratchanger = max(-1, min(1, stratchanger))
-        #     # stratchanger=1
-
-        #     # for j in k2coord[k]:  # for each coordinate in cluster k
-        #     #     # eta = random.uniform(-1,1)  # different for each cell
-        #     #     sigma = G[t,j]
-        #     #     cluster_influence = A*xi[k]
-        #     #     # member_influence = a*eta
-        #     #     member_influence = 0
-        #     #     total += ((cluster_influence + member_influence) * sigma)
-        #     # for j in k2coord[k]:
-        #     #     cluster_influence = G[t,j] * A * xi[k]
-
-        #     cluster_influence = A * xi[k] * np.mean(G[t,k2coord[k]])
-
-        #     # total *= stratchanger
-        #     self_influence = h*zeta
-
-        #     # print("cluster_influence:", cluster_influence)
-        #     # print("self_influence:", self_influence)
-        
-        #     # # perf = percentage increase or decrease (pos or neg val)
-        #     # performance = (N[t,i] - initial_account_balance) / initial_account_balance
-        #     # # strat in [-1,1], high --> prefers buying, low --> prefers selling
-        #     # lookback = min(t,MAXLOOKBACK)
-        #     # strategy = np.mean(G[t-lookback:t+1,i])
-        #     # # print(strategy)
-        #     # # perf high --> continue with strat
-        #     # # perf low --> change strat
-        #     # # perf <0 --> switch sign of strat
-        #     # bias = performance * strategy
-        #     # # trimmed_bias = max(-100, min(100, bias))
-        #     # # print(trimmed_bias)
-        #     # normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-        #     # # self_influence = normalised_bias * h #* zeta
-
-        #     # print(len(k2coord[k]))
-        #     # print(len(total))
-
-        #     # I = (1 / len(k2coord[k])) * total + self_influence
-        #     # p = 1 / (1 + math.exp(-2 * I))# * stratchanger
-        #     I = cluster_influence + self_influence
-        #     p = 1 / (1 + math.exp(-2 * I))
-
-
-
-
-
+            # =================================================================
             D[t,i] = I
             if random.random() < p:
-                G[t+1,i] = round(I)
+                G[t+1,i] = max(1,round(I))
             else:
-                G[t+1,i] = -round(I)
+                G[t+1,i] = min(-1,-round(I))
             # if random.random() < p:
             #     G[t+1,i] = 1
             # else:
