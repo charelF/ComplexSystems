@@ -112,10 +112,11 @@ def visualiseNICE(G, P, N, S, X, D):
     ax3.bar(np.arange(len(X)), X)
     ax3.grid(alpha=0.4)
 
-    if D.shape[1] < 25:
-        ax6.plot(D, color="black", alpha=0.3)
-    ax6.plot(np.mean(D,axis=1), color="black", alpha=1)
-    ax6.grid(alpha=0.4)
+    # if D.shape[1] < 25:
+    #     ax6.plot(D, color="black", alpha=0.3)
+    # ax6.plot(np.mean(D,axis=1), color="black", alpha=1)
+    ax6.imshow(D.T, cmap="binary", interpolation="None", aspect="auto")
+    # ax6.grid(alpha=0.4)
     
 
     ax6.set_xlabel("time")
@@ -171,6 +172,9 @@ X = np.zeros(N0)
 S = np.zeros(N0)
 S[0] = initial_stock_price
 
+stack = 0
+max_to_be_sold = N1//10
+
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
 
@@ -180,17 +184,28 @@ for t in range(N0-1):
         for i in k2coord[k]:
             tmp += G[t,i]
         Xt += size * tmp
+
+    if abs(stack) > max_to_be_sold:
+        to_be_sold = max_to_be_sold * (1 if stack > 0 else -1)
+        stack -= to_be_sold
+    else:
+        to_be_sold = stack
+        stack = 0
+
+    Xt += to_be_sold
     X[t+1] = Xt/(10*N0)
-    S[t+1] = S[t]*math.exp(X[t]) + drift
+    S[t+1] = S[t]*math.exp(X[t+1]) + drift
 
     xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
 
+    
+    P[t+1] = P[t] + G[t]
+    # their next balance is their current balance minus
+    # their purchase (or sell) of stock at current price
+    B[t+1] = B[t] - (G[t] * S[t])
+    N[t+1] = B[t] + (P[t] * S[t])
+
     for i in range(N1):
-        P[t+1,i] = P[t,i] + G[t,i]
-        # their next balance is their current balance minus
-        # their purchase (or sell) of stock at current price
-        B[t+1,i] = B[t,i] - (G[t,i] * S[t])
-        N[t+1,i] = B[t,i] + (P[t,i]*S[t])
 
         if G[t,i] != 0:
 
@@ -202,7 +217,7 @@ for t in range(N0-1):
             I = cluster_influence + self_influence
             p = 1 / (1 + math.exp(-2 * I))
 
-            D[t,i] = I
+            # D[t,i] = I
             if random.random() < p:
                 G[t+1,i] = 1
             else:
@@ -237,8 +252,25 @@ for t in range(N0-1):
                 G[t+1,i] = np.random.choice([-1,1])
 
         # margin call
-        still_ok = N[t] > min_account_balance
-        G[t+1] = G[t+1] * still_ok
+        # still_ok = N[t] > min_account_balance
+        margin_call = N[t] < min_account_balance
+        D[t+1] = margin_call
+        # those that are margin called become inactive
+        G[t+1] = G[t+1] * np.logical_not(margin_call) # those that are not remain
+        P[t+1] = P[t+1] * np.logical_not(margin_call) # those that are not keep their portfolio
+        # those that are are given the initial money again to start again
+        B[t+1] = (B[t+1] * np.logical_not(margin_call)) + (initial_account_balance * margin_call)
+        # they are also given their initial networth
+        N[t+1] = (N[t+1] * np.logical_not(margin_call)) + (initial_account_balance * margin_call)
+        # before we move on, we look at shares of those margin called
+        sum_called_shares = sum(P[t] * margin_call)
+        sum_margin_called = sum(margin_call)
+        # these shares are sold at current price
+        # Mt = sum_called_shares * sum_margin_called / (10*N0)
+        # X[t+1] = X[t+1] + Mt
+        # S[t+1] = S[t]*math.exp(X[t+1])
+        stack += sum_called_shares
+
 
 final_trade = P[-1] * S[-1]
 B[-1] += final_trade
