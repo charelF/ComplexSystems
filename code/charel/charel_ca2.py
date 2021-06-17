@@ -10,8 +10,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import warnings
 warnings.simplefilter("ignore")
 
-np.random.seed(1)
-random.seed(1)
+np.random.seed(4)
+random.seed   (4)
 
 #%%
 
@@ -150,7 +150,7 @@ pe = 0.01
 ph = 0.1
 pa = 1
 
-N0 = 200
+N0 = 400
 N1 = 20
 
 A = 3
@@ -158,7 +158,7 @@ a = 1
 h = 1
 
 initial_account_balance = 1000
-min_account_balance = 500
+min_account_balance = 900
 initial_stock_price = 100
 
 drift = 0
@@ -186,7 +186,7 @@ T = np.zeros(N0)
 U = np.zeros(N0)
 
 stack = 0
-max_to_be_sold = N1//5
+max_to_be_sold = N1
 
 for t in range(N0-1):
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
@@ -286,7 +286,7 @@ for t in range(N0-1):
     # print(stack)
     U[t+1] = sum_called_shares
     # print(sum_called_shares)
-    stack += sum_called_shares
+    stack += sum_called_shares * sum_margin_called
     # print(stack)
     # stack *= 0.8
 
