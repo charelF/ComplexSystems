@@ -205,7 +205,7 @@ for t in range(N0-1):
                     if ((random.random() <= 0.8) and (G[t,i]==0)):
                         G[t+1,i] = 0
 
-                    if RATIONAL_RANDOM <= 0.05:
+                    if RATIONAL_RANDOM  <= 0.05:
                         if random.random() <= p30:
                             G[t+1,i] = +1
                         else:
@@ -274,7 +274,7 @@ for t in range(N0-1):
         if G[t,i] == 0:
             if random.random() < pe:
                 G[t+1,i] = np.random.choice([-1,1])
-
+  
 final_trade = P[-1] * S[-1]
 B[-1] += final_trade
 N[-1] = B[-1]
@@ -349,10 +349,26 @@ log_ret_dat_stan = (log_ret_dat - np.mean(log_ret_dat)) / np.std(log_ret_dat)
 
 r = (X - np.mean(X)) / np.std(X)
 
+print(np.std(r))
+print(np.std(log_ret_dat_stan))
+
 fig = plt.figure(figsize=(8, 8))
-plt.hist(r, alpha=0.2, bins=50, label="CA", density=True)
-plt.hist(log_ret_dat_stan, bins=50, alpha=0.2, label="S&P500", density=True)
-plt.title("Log Return Distribution")
+plt.hist(r, alpha=0.4, bins=30, label="CA", density=True)
+plt.hist(log_ret_dat_stan, bins=30, alpha=0.4, label="S&P500", density=True)
+plt.yscale("log")
+plt.title("Log Return Distribution - Standardised")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.show()
+
+# %%
+
+
+fig = plt.figure(figsize=(8, 8))
+plt.hist(X, alpha=0.2, bins=50, label="CA", density=True)
+plt.hist(log_ret_dat, bins=50, alpha=0.2, label="S&P500", density=True)
+plt.title("Log Return Distribution - Unstandardised")
+plt.yscale("log")
 plt.legend()
 plt.grid(alpha=0.2)
 plt.show()
@@ -374,7 +390,6 @@ plt.plot(x_eval, kde1(x_eval), color="C4", label="CA Returns")
 
 kde2 = stats.gaussian_kde(log_ret_dat_stan)
 plt.plot(x_eval, kde2(x_eval), color="C9", label="S&P Returns")
-
 plt.grid(alpha=0.2)
 plt.legend()
 plt.xlabel("r")
