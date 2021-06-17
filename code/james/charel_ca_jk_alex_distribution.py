@@ -2,10 +2,15 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import pandas as pds
 import math
 import random
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import statsmodels.api as sm
+import scipy.stats as stats
+
 
 import warnings
 warnings.simplefilter("ignore")
@@ -19,6 +24,7 @@ def cluster_info(arr):
     """ number of clusters (nonzero fields separated by 0s) in array
         and size of cluster
     """
+
     data = []
     k2coord = {}
     k = 0
@@ -28,9 +34,6 @@ def cluster_info(arr):
     else:
         k=-1
 
-    # print("arr", arr)
-    # print("data", data)
-    
     for i in range(0,len(arr)-1):
         if arr[i] == 0 and arr[i+1] != 0:
             data.append(0)
@@ -59,29 +62,27 @@ def moving_average(x, w):
 
 #%%
 
-# pd = 0.1
-# pe = 0.0001
-# ph = 0.1 # vary
-# pa = 1
-
 pd = 0.03 # active becomes inactive
 pe = 0.01 # probability of nontrader to enter the market
 ph = 0.0485  # probability that an active trader can turn one of his inactive neighbots into active
 pa = 0.5
 
-
 N0 = 1000
 N1 = 100
 
-# A = 2
-# a = 0.1
-# h = 0.1
 A = 1.8
 a = 1
 h = 1
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
+
+## Cell Rule Types 
+## 3 = percolation, 4 = MA, 5=portfolio management
+T = np.zeros(shape=(N0,N1))
+T_temp = np.random.choice(a=[3, 4, 5], p=[0.5, 0.25, 0.25], size=N1, replace=True)
+##T[0] = np.where(((G[0] == -1) | (G[0] == 1)), T_temp, 0)
+T[:,:] = T_temp
 
 initial_account_balance = 1000
 initial_stock_price = 100
@@ -94,7 +95,6 @@ N[0] = B[0]  # noone has stock initially
 X = np.zeros(N0)
 S = np.zeros(N0)
 S[0] = initial_stock_price
-# X[0] = 1
 
 S_ma10 = np.zeros(N0)
 S_ma10[0] = initial_stock_price
@@ -103,15 +103,18 @@ S_ma20[0] = initial_stock_price
 S_ma30 = np.zeros(N0)
 S_ma30[0] = initial_stock_price
 
-MA_T_R= [2,4,10]
+MA_T_R= [4, 8, 16]
 
-DRIFT = 0.01
+DRIFT = 0.2
 MAXLOOKBACK = 4
 
 # each of the N1 agents has different treshold
 treshold = np.random.random(size=N1)*10
 
 for t in range(N0-1):
+    ## filter array before giving to cluster info such that only the 
+    ## entries with the percolation rule have their value calculated
+    G_t_filtered = np.where(T[t] == 3, G[t], 0)
     Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
 
     Xt = 0
@@ -148,11 +151,7 @@ for t in range(N0-1):
             total = 0
             zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
 
-            change = (S[t] - initial_stock_price) / initial_stock_price
-
-
-            CLUSTER_DEPENDENCE_PROB = 0.5
-            if random.random() < CLUSTER_DEPENDENCE_PROB:
+            if T[t, i] == 3:
                 for j in k2coord[k]:  # for each coordinate in cluster k
                     eta = random.uniform(-1,1)  # different for each cell
                     sigma = G[t,j]
@@ -170,11 +169,8 @@ for t in range(N0-1):
                 else:
                     G[t+1,i] = -1
 
-            else:
-
-
-
-                 ## fair valuation 
+            elif T[t, i] == 4:
+                ## fair valuation 
                 ma_diff10 = (S_ma10[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
                 ma_diff_norm10 = 2 / (1 + np.exp(-2 * ma_diff10)) - 1
                 ma_diff20 = (S_ma20[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
@@ -186,61 +182,50 @@ for t in range(N0-1):
                 AR_PROB = 0.5 # MA agent
                 AR_PERFORMANCE = 0.9 # portfolio agent
     
-                RANDOM_AGENT = random.random()
-                
-                
-                if RANDOM_AGENT <= AR_PROB:
-                    VAL_RAND = np.random.normal(0,0.05)
+                RANDOM_AGENT, RATIONAL_RANDOM = random.random(), random.random() 
 
-                    RATIONAL_RANDOM = random.random()
-                    
-                    p10 = 1 / (1 + math.exp(- ma_diff_norm10+VAL_RAND))
-                    p20 = 1 / (1 + math.exp(- ma_diff_norm20+VAL_RAND))
-                    p30 = 1 / (1 + math.exp(- ma_diff_norm30+VAL_RAND))
-                    
-                    if ((random.random() <= 0.8) and (G[t,i]==0)):
-                        G[t+1,i] = 0
+                VAL_RAND = np.random.normal(0,0.05)
 
-                    if RATIONAL_RANDOM <= 0.05:
-                        if random.random() <= p30:
-                            G[t+1,i] = +1
-                        else:
-                            G[t+1,i] = -1
-                    elif RATIONAL_RANDOM <= 0.3:
-                        if random.random() <= p20:
-                            G[t+1,i] = +1
-                        else:
-                            G[t+1,i] = -1
-                    elif RATIONAL_RANDOM <= 0.6:
-                        if random.random() <= p10:
-                            G[t+1,i] = +1
-                        else:
-                            G[t+1,i] = -1
+                p10 = 1 / (1 + math.exp(- ma_diff_norm10+VAL_RAND))
+                p20 = 1 / (1 + math.exp(- ma_diff_norm20+VAL_RAND))
+                p30 = 1 / (1 + math.exp(- ma_diff_norm30+VAL_RAND))
+                
+                if ((random.random() <= 0.8) and (G[t,i]==0)):
+                    G[t+1,i] = 0
+
+                if RATIONAL_RANDOM <= 0.05:
+                    if random.random() <= p30:
+                        G[t+1,i] = +1
                     else:
-                        G[t+1,i] = np.random.choice([-1,1])
-                elif RANDOM_AGENT <= AR_PERFORMANCE:
-                    # perf = percentage increase or decrease (pos or neg val)
-                    performance = (N[t,i] - initial_account_balance) / initial_account_balance
-                    # strat in [-1,1], high --> prefers buying, low --> prefers selling
-                    lookback = min(t,MAXLOOKBACK)
-                    strategy = np.mean(G[t-lookback:t+1,i])
-                    bias = performance * strategy
-                    trimmed_bias = max(-10, min(10, bias))
-                    normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
-                    self_influence = normalised_bias * h #* zeta
-                    I = (1 / len(k2coord[k])) * total + self_influence 
-
-                    p = 1 / (1 + math.exp(-2 * I))
-                    if random.random() < p:
-                        G[t+1,i] = 1
+                        G[t+1,i] = -1
+                elif RATIONAL_RANDOM <= 0.3:
+                    if random.random() <= p20:
+                        G[t+1,i] = +1
+                    else:
+                        G[t+1,i] = -1
+                elif RATIONAL_RANDOM <= 0.6:
+                    if random.random() <= p10:
+                        G[t+1,i] = +1
                     else:
                         G[t+1,i] = -1
 
+            elif T[t, i] == 5:
+                # perf = percentage increase or decrease (pos or neg val)
+                performance = (N[t,i] - initial_account_balance) / initial_account_balance
+                # strat in [-1,1], high --> prefers buying, low --> prefers selling
+                lookback = min(t,MAXLOOKBACK)
+                strategy = np.mean(G[t-lookback:t+1,i])
+                bias = performance * strategy
+                trimmed_bias = max(-10, min(10, bias))
+                normalised_bias = 2 / (1 + math.exp(-2 * trimmed_bias)) - 1
+                self_influence = normalised_bias * h #* zeta
+                I = (1 / len(k2coord[k])) * total + self_influence 
+
+                p = 1 / (1 + math.exp(-2 * I))
+                if random.random() < p:
+                    G[t+1,i] = 1
                 else:
-                    G[t+1,i] = np.random.choice([-1,0,1])
-
-
-
+                    G[t+1,i] = -1
 
 
         # trader influences non-active neighbour to join
@@ -249,41 +234,45 @@ for t in range(N0-1):
             if random.random() < ph:
                 if G[t,(i-1)%N1] == 0 and G[t,(i+1)%N1] == 0:
                     ni = np.random.choice([-1,1])
-                    G[t+1,(i+ni)%N1] = stance#random.choice([-1,1])
+                    if T[t, i] == T[t,(i+ni)%N1]:
+                        G[t+1,(i+ni)%N1] = stance
                 elif G[t,(i-1)%N1] == 0:
-                    G[t+1,(i-1)%N1] = stance#random.choice([-1,1])
+                    if T[t, i] == T[t,(i-1)%N1]:
+                        G[t+1,(i-1)%N1] = stance
                 elif G[t,(i+1)%N1] == 0:
-                    G[t+1,(i+1)%N1] = stance#random.choice([-1,1])
+                    if T[t, i] == T[t,(i+1)%N1]:                    
+                        G[t+1,(i+1)%N1] = stance
                 else:
                     continue
 
         # active trader diffuses if it has inactive neighbour
         # only happens at edge of cluster
-        if G[t,i] != 0:
-            if random.random() < pd:
-                if (G[t,(i-1)%N1] == 0) or (G[t,(i+1)%N1] == 0):
-                    G[t+1,i] = 0
-                else:
-                    continue
+        if G[t,i] != 0 and random.random() < pd:
+            if (G[t,(i-1)%N1] == 0) and (T[t,(i-1)%N1] == T[t, i]): 
+                G[t+1,i] = 0
+            elif(G[t,(i+1)%N1] == 0) and (T[t,(i+1)%N1] == T[t, i]):
+                G[t+1,i] = 0
+            else:
+                continue
 
         # nontrader enters market
-        if G[t,i] == 0:
-            if random.random() < pe:
-                G[t+1,i] = np.random.choice([-1,1])
+        if G[t,i] == 0 and random.random() < pe:
+            G[t+1,i] = np.random.choice([-1,1])
 
 final_trade = P[-1] * S[-1]
 B[-1] += final_trade
 N[-1] = B[-1]
 
-fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(
-    ncols=1, nrows=5, figsize=(12,9), sharex=True, gridspec_kw = 
-    {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1]}
+fig, (ax1,ax2,ax3,ax4,ax5, ax6) = plt.subplots(
+    ncols=1, nrows=6, figsize=(12,9), sharex=True, gridspec_kw = 
+    {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1]}
 )
 im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
 im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
 amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
 vmin, vmax = initial_account_balance-amnwc, initial_account_balance+amnwc
 im5 = ax5.imshow(N.T, cmap="bwr", interpolation="None", aspect="auto", vmin=vmin, vmax=vmax)
+im6 = ax6.imshow(T.T, cmap="bone", interpolation="None", aspect="auto")
 
 size = "15%"
 
@@ -293,6 +282,8 @@ cax4 = make_axes_locatable(ax4).append_axes('right', size=size, pad=0.05)
 fig.colorbar(im4, cax=cax4, orientation='vertical')
 cax5 = make_axes_locatable(ax5).append_axes('right', size=size, pad=0.05)
 fig.colorbar(im5, cax=cax5, orientation='vertical')
+cax6 = make_axes_locatable(ax6).append_axes('right', size=size, pad=0.05)
+fig.colorbar(im6, cax=cax6, orientation='vertical')
 
 cax2 = make_axes_locatable(ax2).append_axes('right', size=size, pad=0.05)
 cax2.hist(S, orientation="horizontal", bins=np.linspace(np.min(S), np.max(S), len(S)//2))
@@ -326,12 +317,103 @@ ax1.set_ylabel("agents")
 ax3.set_ylabel("log return")
 ax4.set_ylabel("portfolio")
 ax5.set_ylabel("net worth")
+ax6.set_ylabel("agent types")
 
 # fig.colorbar(im, cax=ax4)
 
 plt.tight_layout()
 plt.show()
 
+print(T.T)
+
 # %%
 
+df = pds.read_csv("../../data/all_world_indices_clean.csv")
+df_spx = df[["Date", "SPX Index"]]
+df_spx["Date"] = pds.to_datetime(df_spx["Date"], format='%d/%m/%Y')
+df_spx = df_spx.sort_values(by="Date")
+df_spx.reset_index(inplace=True)
+series_array = np.array(df_spx["SPX Index"])
+log_ret_dat = np.diff(np.log(series_array))
+log_ret_dat_stan = (log_ret_dat - np.mean(log_ret_dat)) / np.std(log_ret_dat)
+
+r = (X - np.mean(X)) / np.std(X)
+
+print(np.std(r))
+print(np.std(log_ret_dat_stan))
+
+fig = plt.figure(figsize=(8, 8))
+plt.hist(r, alpha=0.4, bins=30, label="CA", density=True)
+plt.hist(log_ret_dat_stan, bins=30, alpha=0.4, label="S&P500", density=True)
+plt.yscale("log")
+plt.title("Log Return Distribution - Standardised")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.show()
+
+# %%
+
+
+fig = plt.figure(figsize=(8, 8))
+plt.hist(X, alpha=0.2, bins=50, label="CA", density=True)
+plt.hist(log_ret_dat, bins=50, alpha=0.2, label="S&P500", density=True)
+plt.title("Log Return Distribution - Unstandardised")
+plt.yscale("log")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.show()
+
+## back calc'd log returns for CA
+# fig = plt.figure(figsize=(8, 8))
+# plt.hist(, alpha=0.2, bins=50, label="CA", density=True)
+# plt.hist(log_ret_dat_stan, bins=50, alpha=0.2, label="S&P500", density=True)
+# plt.title("Log Return Distribution")
+# plt.legend()
+# plt.show()
+
+# %%
+
+x_eval = np.linspace(-3, 3, 50)
+
+kde1 = stats.gaussian_kde(r)
+plt.plot(x_eval, kde1(x_eval), color="C4", label="CA Returns")
+
+kde2 = stats.gaussian_kde(log_ret_dat_stan)
+plt.plot(x_eval, kde2(x_eval), color="C9", label="S&P Returns")
+plt.grid(alpha=0.2)
+plt.legend()
+plt.xlabel("r")
+plt.ylabel("Prob Density")
+plt.show()
+
+# %%
+
+acf_x_price = sm.tsa.stattools.acf(r)
+acf_sp_price = sm.tsa.stattools.acf(log_ret_dat_stan)
+x = np.arange(acf_x_price.shape[0])
+
+mean_sp = np.mean(acf_sp_price)
+fig = plt.figure(figsize=(15, 5))
+plt.plot(x, acf_x_price, label="S&P500 Returns")
+plt.plot(x, acf_sp_price, label="CA Returns")
+plt.xlabel("Lag")
+plt.ylabel("Autocorrelations")
+plt.grid(alpha=0.2)
+plt.legend()
+plt.show()
+
+
+# %%
+acf_x_vol = sm.tsa.stattools.acf(np.abs(r))
+acf_sp_vol = sm.tsa.stattools.acf(np.abs(log_ret_dat_stan))
+x = np.arange(acf_x_vol.shape[0])
+
+fig = plt.figure(figsize=(15, 5))
+plt.plot(x, acf_x_vol, label="S&P500 Volatility")
+plt.plot(x, acf_sp_vol, label="CA Volatility")
+plt.xlabel("Lag")
+plt.ylabel("Autocorrelations")
+plt.grid(alpha=0.2)
+plt.legend()
+plt.show()
 # %%
