@@ -191,9 +191,9 @@ MA2_AGENTS = 0.6
 # max absolute influence
 max_I = 2
 
-initial_account_balance = 1000
-min_account_balance = 500
-initial_stock_price = 100
+initial_account_balance = 2000
+min_account_balance = 800
+initial_stock_price = 200
 
 drift = 0  # not really working
 max_look_back = 4
@@ -275,9 +275,20 @@ for t in range(N0-1):
         else:
             S_ma10[t+1] = np.mean(S[max(0, (t+1 - MA_T)):t+1])
 
-    if t<10:
+    if t<2:
         ma_diff_norm2 = 0
         ma_diff_norm4 = 0
+        ma_diff_norm10 = 0
+    elif t<4:
+        ma_diff2 = (S_ma2[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+        ma_diff_norm2 = 2 / (1 + np.exp(-2 * ma_diff2)) - 1
+        ma_diff_norm4 = 0
+        ma_diff_norm10 = 0
+    elif t<10:
+        ma_diff2 = (S_ma2[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+        ma_diff_norm2 = 2 / (1 + np.exp(-2 * ma_diff2)) - 1
+        ma_diff4 = (S_ma4[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+        ma_diff_norm4 = 2 / (1 + np.exp(-2 * ma_diff4)) - 1
         ma_diff_norm10 = 0
     else:
         ma_diff2 = (S_ma2[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
@@ -362,13 +373,15 @@ for t in range(N0-1):
             if ((trigger ==True) and (t >=300 and t< 301)):
                 p = 1
                 I = max_I
-
+            
+            # Support line 
             if ((bound ==True) and (S[t] <=50)):
-                p = 0.8
+                p = 0.7
                 I = max_I
-
-            if ((bound ==True) and (S[t] >=400)):
-                p = 0.2
+            
+            # Resistance
+            if ((bound ==True) and (S[t] >=800)):
+                p = 0.3
                 I = max_I
             
             if random.random() < p:
