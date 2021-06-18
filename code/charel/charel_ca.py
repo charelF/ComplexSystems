@@ -107,7 +107,7 @@ def visualiseNICE(G, P, N, S, X, D, T, U):
     #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
     #     # cax.axis('off')
 
-    # ax2.set_yscale("log")
+    ax2.set_yscale("log")
     ax2.plot(S, label="S")
     Ws = [25]
     for W in Ws:
@@ -153,8 +153,8 @@ def visualiseNICE(G, P, N, S, X, D, T, U):
 
 pd = 0.05
 pe = 0.01
-ph = 0.0485
-pa = 0.3
+ph = 0.05
+# pa = 0.3
 
 N0 = 200
 N1 = 100
@@ -164,7 +164,7 @@ a = 1
 h = 1
 
 initial_account_balance = 1000
-min_account_balance = 800
+min_account_balance = 200
 initial_stock_price = 100
 
 drift = 0
@@ -172,7 +172,7 @@ max_look_back = 10
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-# G[0] = ((np.arange(0,N1)*6//N1)%3)-1
+G[0] = ((np.arange(0,N1)*6//N1)%3)-1
 # G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
@@ -352,7 +352,7 @@ for t in range(N0-1):
                 G[t+1,i] = np.random.choice([-1,1])
 
     # margin call
-    # stillå_ok = N[t] > min_account_balance
+    # still_ok = N[t] > min_account_balance
     # G[t+1] = G[t+1] * still_ok
     # margin call
     # still_ok = N[t] > min_account_balance
@@ -369,16 +369,15 @@ for t in range(N0-1):
     sum_called_shares = sum(P[t] * margin_call)
     sum_margin_called = sum(margin_call)
     # these shares are sold at current price
-    # Mt = sum_called_shares * sum_margin_called / (10*N0)
-    # X[t+1] = X[t+1] + Mt
-    # S[t+1] = S[t]*math.exp(X[t+1])
-    # print(stack)
     U[t+1] = sum_called_shares
     # print(sum_called_shares)
     stack += sum_called_shares * sum_margin_called
+
+    # # margin call
+    # still_ok = N[t] > min_account_balance
+    # G[t+1] = G[t+1] * still_ok
     # stack = 0
-    # print(stack)
-    # stack *= 0.
+
 
 final_trade = P[-1] * S[-1]
 B[-1] += final_trade
