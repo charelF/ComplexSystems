@@ -104,7 +104,7 @@ def visualiseNICE(G, P, N, S, X, D):
     #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
     #     # cax.axis('off')
 
-    ax2.set_yscale("log")
+    # ax2.set_yscale("log")
     ax2.plot(S, label="S")
     Ws = [25]
     for W in Ws:
@@ -137,13 +137,13 @@ def visualiseNICE(G, P, N, S, X, D):
 
 #%%
 
-pd = 0.1
-pe = 0.1
-ph = 0.1
-pa = 1
+pd = 0.05
+pe = 0.01
+ph = 0.0485
+pa = 0.3
 
 N0 = 200
-N1 = 100
+N1 = 50
 
 A = 2
 a = 1
@@ -158,7 +158,7 @@ max_look_back = 3
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-G[0] = ((np.arange(0,N1)*6//N1)%3)-1
+# G[0] = ((np.arange(0,N1)*6//N1)%3)-1
 # G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
@@ -178,6 +178,14 @@ S[0] = initial_stock_price
 treshold = np.random.random(size=N1)*10
 
 
+# investor_type = np.random.choice(
+#     a=[0,1,2], size=N1, replace=True,
+#     p = [
+#         1, # original CA
+#         .0, # momentum strategy
+#         .0, # market inverter
+#     ]
+# )
 investor_type = np.random.choice(
     a=[0,1,2], size=N1, replace=True,
     p = [
@@ -244,6 +252,7 @@ for t in range(N0-1):
             if investor_type[i] == 0:
                 # agent # 1
                 k = coord2k[i]
+                zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
                 cluster_influence = A * trunc(np.mean(G[t,k2coord[k]]),3,-3) * xi[k]
                 self_influence = h * trunc(G[t,i],3,-3) * zeta
                 I = cluster_influence + self_influence
@@ -271,9 +280,9 @@ for t in range(N0-1):
             # =================================================================
             D[t,i] = I
             if random.random() < p:
-                G[t+1,i] = trunc(round(I),2,1)
+                G[t+1,i] = 1#trunc(round(I),2,1)
             else:
-                G[t+1,i] = trunc(-abs(round(I)),-1,-2)
+                G[t+1,i] = -1#trunc(-abs(round(I)),-1,-2)
             # if random.random() < p:
             #     G[t+1,i] = 1
             # else:
