@@ -165,13 +165,14 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
 
 # trigger a shock
 trigger = False
+bound = True
 
 pd = 0.05
 pe = 0.01
 ph = 0.0485
 pa = 0.7
 
-N0 = 1000
+N0 = 2000
 N1 = 100
 
 A = 4
@@ -360,6 +361,14 @@ for t in range(N0-1):
             # Introduce shock
             if ((trigger ==True) and (t >=300 and t< 301)):
                 p = 1
+                I = max_I
+
+            if ((bound ==True) and (S[t] <=50)):
+                p = 0.8
+                I = max_I
+
+            if ((bound ==True) and (S[t] >=400)):
+                p = 0.2
                 I = max_I
             
             if random.random() < p:
