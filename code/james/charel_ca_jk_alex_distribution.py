@@ -62,7 +62,7 @@ def moving_average(x, w):
 
 #%%
 
-pd = 0.03 # active becomes inactive
+pd = 0.1 # active becomes inactive
 pe = 0.01 # probability of nontrader to enter the market
 ph = 0.0685  # probability that an active trader can turn one of his inactive neighbots into active
 pa = 0.5
@@ -105,7 +105,7 @@ S_ma30[0] = initial_stock_price
 
 MA_T_R= [4, 8, 16]
 
-DRIFT = 0.2
+DRIFT = 0.1
 MAXLOOKBACK = 4
 
 # each of the N1 agents has different treshold
