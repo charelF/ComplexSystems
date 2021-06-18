@@ -1,4 +1,4 @@
-#%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ warnings.simplefilter("ignore")
 np.random.seed(1)
 random.seed(1)
 
-#%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 def cluster_info(arr):
     """ number of clusters (nonzero fields separated by 0s) in array
@@ -62,8 +62,8 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
         ncols=1, nrows=8, figsize=(12,12), sharex=True, gridspec_kw = 
         {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1,1,1]}
     )
-    im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
-    im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
+    im1 = ax1.imshow(G.T, cmap="bwr", interpolation="None", aspect="auto")
+    im4 = ax4.imshow(P.T, cmap="bwr", interpolation="None", aspect="auto")
     amnwc = np.max(np.abs(N-initial_account_balance))  # absolute max net worth change
     vmin, vmax = initial_account_balance-amnwc, initial_account_balance+amnwc
     im5 = ax5.imshow(N.T, cmap="bwr", interpolation="None", aspect="auto", vmin=vmin, vmax=vmax)
@@ -159,26 +159,29 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
     # plt.savefig("tmp.png", dpi=300)
     plt.show()
 
-#%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # =================== Parameters ================
 
-pd = 0.03
+# trigger a shock
+trigger = False
+
+pd = 0.05
 pe = 0.01
 ph = 0.0485
-pa = 0.5
+pa = 0.7
 
 N0 = 1000
 N1 = 100
 
-A = 2
+A = 4
 a = 1
 h = 1
 
 # probabilities of investor types
 pi1 = 0.5  # original CA
-pi2 = 0.2 # momentum
-pi3 = 0.3  # invert / fundamental
+pi2 = 0.3 # invert / fundamental
+pi3 = 0.2  # momentum
 
 MA10_AGENTS = 0.05   #  Required: MA2>MA4>MA10
 MA4_AGENTS = 0.3     # split between agents that use MA2,MA4 and MA10
@@ -188,7 +191,7 @@ MA2_AGENTS = 0.6
 max_I = 2
 
 initial_account_balance = 1000
-min_account_balance = 800
+min_account_balance = 500
 initial_stock_price = 100
 
 drift = 0  # not really working
@@ -299,9 +302,6 @@ for t in range(N0-1):
             zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
             change = (S[t] - initial_stock_price) / initial_stock_price
 
-            # if t >=300 and t< 301:
-            #     p = 0
-            #     I = max_I
 
             if investor_type[i] == 0 or investor_type[i]==2:
                 for j in k2coord[k]:  # for each coordinate in cluster k
@@ -329,11 +329,9 @@ for t in range(N0-1):
                 I = (1 / len(k2coord[k])) * total + self_influence 
                 p = 1 / (1 + math.exp(-2 * I))
 
-                # self_influence = bias * h
-                # I = trunc(self_influence * 10, max_I, -max_I)
 
             if investor_type[i] == 2:
-                MA_AGENTS_DECISION_NOISE = 1
+                MA_AGENTS_DECISION_NOISE = 0.8
                 VAL_RAND = np.random.normal(0, MA_AGENTS_DECISION_NOISE)
 
                 RATIONAL_RANDOM = random.random()
@@ -342,27 +340,28 @@ for t in range(N0-1):
                 p4 = 1 / (1 + math.exp(- ma_diff_norm4+VAL_RAND))
                 p10 = 1 / (1 + math.exp(- ma_diff_norm10+VAL_RAND))
                 
-                # if ((random.random() <= 0.8) and (G[t,i]==0)):
-                #     G[t+1,i] = 0
 
                 if RATIONAL_RANDOM <= MA10_AGENTS:
                     p=p10
-                    I = 1
+                    I = ma_diff_norm10+VAL_RAND
+
                 elif RATIONAL_RANDOM <= MA4_AGENTS:
                     p=p4
-                    I = 1
+                    I = ma_diff_norm4+VAL_RAND
+                
                 elif RATIONAL_RANDOM <= MA2_AGENTS:
                     p=p2
-                    I = 1
+                    I = ma_diff_norm2+VAL_RAND
+
                 else:
                     p=0.5
                     I = 1
 
-                # change = (S[t] - initial_stock_price) / initial_stock_price
-                # trigger = treshold[i] - abs(change)
-                # I = change * 100 * (1 if trigger > 0 else -1)
-                # I = trunc(I, max_I, -max_I)
-
+            # Introduce shock
+            if ((trigger ==True) and (t >=300 and t< 301)):
+                p = 1
+                I = max_I
+            
             if random.random() < p:
                 decision = trunc(round(I),max_I,1)
             else:
@@ -423,6 +422,83 @@ N[-1] = B[-1]
 
 visualiseNICE(G,P,N,S,X,D,T,U,C)
 
-# %%
 
-# %%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+import pandas as pds
+
+df = pds.read_csv("../../data/all_world_indices_clean.csv")
+df_spx = df[["Date", "SPX Index"]]
+df_spx["Date"] = pds.to_datetime(df_spx["Date"], format='%d/%m/%Y')
+df_spx = df_spx.sort_values(by="Date")
+df_spx.reset_index(inplace=True)
+series_array = np.array(df_spx["SPX Index"])
+log_ret_dat = np.diff(np.log(series_array))
+log_ret_dat_stan = (log_ret_dat - np.mean(log_ret_dat)) / np.std(log_ret_dat)
+
+r = (X - np.mean(X)) / np.std(X)
+
+fig = plt.figure(figsize=(8, 8))
+plt.yscale("log")
+plt.hist(r, alpha=0.2, bins=50, label="CA", density=True)
+plt.hist(log_ret_dat_stan, bins=50, alpha=0.2, label="S&P500", density=True)
+plt.title("Log Return Distribution")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.show()
+
+## back calc'd log returns for CA
+# fig = plt.figure(figsize=(8, 8))
+# plt.hist(, alpha=0.2, bins=50, label="CA", density=True)
+# plt.hist(log_ret_dat_stan, bins=50, alpha=0.2, label="S&P500", density=True)
+# plt.title("Log Return Distribution")
+# plt.legend()
+# plt.show()
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+import scipy.stats as stats
+import statsmodels.api as sm
+x_eval = np.linspace(-3, 3, 50)
+
+kde1 = stats.gaussian_kde(r)
+plt.plot(x_eval, kde1(x_eval), color="C4", label="CA Returns")
+
+kde2 = stats.gaussian_kde(log_ret_dat_stan)
+plt.plot(x_eval, kde2(x_eval), color="C9", label="S&P Returns")
+
+plt.grid(alpha=0.2)
+plt.legend()
+plt.xlabel("r")
+plt.ylabel("Prob Density")
+plt.show()
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+import scipy.stats as stats
+import statsmodels.api as sm
+acf_x_price = sm.tsa.stattools.acf(r)
+acf_sp_price = sm.tsa.stattools.acf(log_ret_dat_stan)
+x = np.arange(acf_x_price.shape[0])
+
+mean_sp = np.mean(acf_sp_price)
+fig = plt.figure(figsize=(15, 5))
+plt.plot(x, acf_x_price, label="S&P500 Returns")
+plt.plot(x, acf_sp_price, label="CA Returns")
+plt.xlabel("Lag")
+plt.ylabel("Autocorrelations")
+plt.grid(alpha=0.2)
+plt.legend()
+plt.show()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+acf_x_vol = sm.tsa.stattools.acf(np.abs(r))
+acf_sp_vol = sm.tsa.stattools.acf(np.abs(log_ret_dat_stan))
+x = np.arange(acf_x_vol.shape[0])
+
+fig = plt.figure(figsize=(15, 5))
+plt.plot(x, acf_x_vol, label="S&P500 Volatility")
+plt.plot(x, acf_sp_vol, label="CA Volatility")
+plt.xlabel("Lag")
+plt.ylabel("Autocorrelations")
+plt.grid(alpha=0.2)
+plt.legend()
+plt.show()
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
