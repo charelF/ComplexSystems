@@ -533,8 +533,28 @@ plt.show()
 
 ## hurst exponent analysis
 
+df = pd.read_csv("../../data/all_world_indices_clean.csv")
+df_spx = df[["Date", "SPX Index"]]
+df_spx["Date"] = pd.to_datetime(df_spx["Date"], format='%d/%m/%Y')
+df_spx = df_spx.sort_values(by="Date")
+df_spx.reset_index(inplace=True)
+series_array = np.array(df_spx["SPX Index"])
+
 sims = 5
 num_q = 20
+
+## identical to np.split but doesnt raise exception if arrays not equal length
+split = np.array_split(series_array, 6)
+res = np.zeros((6, num_q))
+
+for i in range(len(split)):
+    h_res, q_vals = gen_hurst_exponent(split[i], num_q)
+    res[i,:] = h_res*q_vals
+
+res_mean_sp = np.mean(res, axis=0)
+res_std_sp = np.std(res, axis=0)
+
+
 res = np.zeros((sims, num_q))
 
 for z in range(sims):
@@ -545,9 +565,20 @@ for z in range(sims):
 res_mean_ca = np.mean(res, axis=0)
 res_std_ca = np.std(res, axis=0)
 
-plt.errorbar(q_vals, res_mean_ca, yerr=res_std_ca, label='CA Gen')
-plt.grid(alpha=0.2)
+fig, (ax1,ax2) = plt.subplots(
+    ncols=1, nrows=2, figsize=(12,8), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0}
+)
+
+ax1.errorbar(q_vals, res_mean_ca, color="C4", yerr=res_std_ca, label='CA Gen')
+ax1.grid(alpha=0.2)
+ax1.set_ylabel(r"$q \cdot H(q)$")
+ax1.set_xlabel(r"$q$")
+ax1.legend()
+
+ax2.errorbar(q_vals, res_mean_sp, color="C6", yerr=res_std_sp, label='S&P500 Chunked')
+ax2.grid(alpha=0.2)
+ax2.set_ylabel(r"$q \cdot H(q)$")
+ax2.set_xlabel(r"$q$")
 plt.legend()
-plt.show()
 
 # %%
