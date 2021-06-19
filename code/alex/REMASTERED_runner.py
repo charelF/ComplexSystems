@@ -159,7 +159,7 @@ def parallel_simulation(PAR_range, SIM=100):
     for i in prange(len(PAR_range)):
         PAR_VAL = PAR_range[i]
         for j in prange(SIM):
-            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
                     ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =PAR_VAL, a=1, h=1, 
                     pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
 
@@ -195,6 +195,54 @@ SIM = 1000
 G_MEAN, G_STD, P_MEAN, P_STD, N_MEAN, N_STD, S_MEAN, S_STD, X_MEAN, X_STD, D_MEAN, D_STD, T_MEAN, T_STD, C_MEAN, C_STD = parallel_simulation(PAR_range, SIM)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# SIM 1 ---Bounded---
+#             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                    # ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =PAR_VAL, a=1, h=1, 
+                    # pi1 = 0.5, pi2 = 0.3, pi3 = 0.2) 
+
+# PAR_range = np.linspace(0,16,100)
+
+# SIM 2 ---NOTBounded---
+#             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+                    # ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =PAR_VAL, a=1, h=1, 
+                    # pi1 = 0.5, pi2 = 0.3, pi3 = 0.2) 
+
+# PAR_range = np.linspace(0,16,100)
+
+# G_MEAN_MEAN =np.load("../../data/SIM1/G_MEAN_MEA_sim1000_A_var.npy")
+# P_MEAN_MEAN =np.load("../../data/SIM1/P_MEAN_MEA_sim1000_A_var.npy")
+# N_MEAN_MEAN =np.load("../../data/SIM1/N_MEAN_MEA_sim1000_A_var.npy")
+# S_MEAN_MEAN =np.load("../../data/SIM1/S_MEAN_MEA_sim1000_A_var.npy")
+# X_MEAN_MEAN =np.load("../../data/SIM1/X_MEAN_MEA_sim1000_A_var.npy")
+# D_MEAN_MEAN =np.load("../../data/SIM1/D_MEAN_MEA_sim1000_A_var.npy")
+# T_MEAN_MEAN =np.load("../../data/SIM1/T_MEAN_MEA_sim1000_A_var.npy")
+# C_MEAN_MEAN =np.load("../../data/SIM1/C_MEAN_MEA_sim1000_A_var.npy")
+# G_MEAN_STD  =np.load("../../data/SIM1/G_MEAN_STD_sim1000_A_var.npy")
+# P_MEAN_STD  =np.load("../../data/SIM1/P_MEAN_STD_sim1000_A_var.npy")
+# N_MEAN_STD  =np.load("../../data/SIM1/N_MEAN_STD_sim1000_A_var.npy")
+# S_MEAN_STD  =np.load("../../data/SIM1/S_MEAN_STD_sim1000_A_var.npy")
+# X_MEAN_STD  =np.load("../../data/SIM1/X_MEAN_STD_sim1000_A_var.npy")
+# D_MEAN_STD  =np.load("../../data/SIM1/D_MEAN_STD_sim1000_A_var.npy")
+# T_MEAN_STD  =np.load("../../data/SIM1/T_MEAN_STD_sim1000_A_var.npy")
+# C_MEAN_STD  =np.load("../../data/SIM1/C_MEAN_STD_sim1000_A_var.npy")
+# G_STD_MEAN  =np.load("../../data/SIM1/G_STD_MEAN_sim1000_A_var.npy")
+# P_STD_MEAN  =np.load("../../data/SIM1/P_STD_MEAN_sim1000_A_var.npy")
+# N_STD_MEAN  =np.load("../../data/SIM1/N_STD_MEAN_sim1000_A_var.npy")
+# S_STD_MEAN  =np.load("../../data/SIM1/S_STD_MEAN_sim1000_A_var.npy")
+# X_STD_MEAN  =np.load("../../data/SIM1/X_STD_MEAN_sim1000_A_var.npy")
+# D_STD_MEAN  =np.load("../../data/SIM1/D_STD_MEAN_sim1000_A_var.npy")
+# T_STD_MEAN  =np.load("../../data/SIM1/T_STD_MEAN_sim1000_A_var.npy")
+# C_STD_MEAN  =np.load("../../data/SIM1/C_STD_MEAN_sim1000_A_var.npy")
+# G_STD_STD   =np.load("../../data/SIM1/G_STD_STD _sim1000_A_var.npy")
+# P_STD_STD   =np.load("../../data/SIM1/P_STD_STD _sim1000_A_var.npy")
+# N_STD_STD   =np.load("../../data/SIM1/N_STD_STD _sim1000_A_var.npy")
+# S_STD_STD   =np.load("../../data/SIM1/S_STD_STD _sim1000_A_var.npy")
+# X_STD_STD   =np.load("../../data/SIM1/X_STD_STD _sim1000_A_var.npy")
+# D_STD_STD   =np.load("../../data/SIM1/D_STD_STD _sim1000_A_var.npy")
+# T_STD_STD   =np.load("../../data/SIM1/T_STD_STD _sim1000_A_var.npy")
+# C_STD_STD   =np.load("../../data/SIM1/C_STD_STD _sim1000_A_var.npy")
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 G_MEAN_MEAN = np.mean(G_MEAN, axis = 1)
 P_MEAN_MEAN = np.mean(P_MEAN, axis = 1)
 N_MEAN_MEAN = np.mean(N_MEAN, axis = 1) 
@@ -230,6 +278,8 @@ X_STD_STD = np.std(X_STD, axis = 1)
 D_STD_STD = np.std(D_STD, axis = 1) 
 T_STD_STD = np.std(T_STD, axis = 1) 
 C_STD_STD = np.std(C_STD, axis = 1)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 plt.figure(figsize=(15,5))
 plt.ylabel("G_MEAN_MEAN")
@@ -359,37 +409,37 @@ plt.plot(PAR_range, C_STD_MEAN, c="r")
 plt.fill_between(x=PAR_range, y1 =C_STD_MEAN+1.96*C_STD_STD/(np.sqrt(1000)), y2 = C_STD_MEAN-1.96*C_STD_STD/(np.sqrt(1000)), alpha =0.4 )
 plt.show()
 
-# %%
-G_MEAN_MEAN =np.save("../../data/SIM1/G_MEAN_MEA_sim1000_A_var", G_MEAN_MEAN)
-P_MEAN_MEAN =np.save("../../data/SIM1/P_MEAN_MEA_sim1000_A_var", P_MEAN_MEAN)
-N_MEAN_MEAN =np.save("../../data/SIM1/N_MEAN_MEA_sim1000_A_var", N_MEAN_MEAN)
-S_MEAN_MEAN =np.save("../../data/SIM1/S_MEAN_MEA_sim1000_A_var", S_MEAN_MEAN)
-X_MEAN_MEAN =np.save("../../data/SIM1/X_MEAN_MEA_sim1000_A_var", X_MEAN_MEAN)
-D_MEAN_MEAN =np.save("../../data/SIM1/D_MEAN_MEA_sim1000_A_var", D_MEAN_MEAN)
-T_MEAN_MEAN =np.save("../../data/SIM1/T_MEAN_MEA_sim1000_A_var", T_MEAN_MEAN)
-C_MEAN_MEAN =np.save("../../data/SIM1/C_MEAN_MEA_sim1000_A_var", C_MEAN_MEAN)
-G_MEAN_STD  =np.save("../../data/SIM1/G_MEAN_STD_sim1000_A_var", G_MEAN_STD )
-P_MEAN_STD  =np.save("../../data/SIM1/P_MEAN_STD_sim1000_A_var", P_MEAN_STD )
-N_MEAN_STD  =np.save("../../data/SIM1/N_MEAN_STD_sim1000_A_var", N_MEAN_STD )
-S_MEAN_STD  =np.save("../../data/SIM1/S_MEAN_STD_sim1000_A_var", S_MEAN_STD )
-X_MEAN_STD  =np.save("../../data/SIM1/X_MEAN_STD_sim1000_A_var", X_MEAN_STD )
-D_MEAN_STD  =np.save("../../data/SIM1/D_MEAN_STD_sim1000_A_var", D_MEAN_STD )
-T_MEAN_STD  =np.save("../../data/SIM1/T_MEAN_STD_sim1000_A_var", T_MEAN_STD )
-C_MEAN_STD  =np.save("../../data/SIM1/C_MEAN_STD_sim1000_A_var", C_MEAN_STD )
-G_STD_MEAN  =np.save("../../data/SIM1/G_STD_MEAN_sim1000_A_var", G_STD_MEAN )
-P_STD_MEAN  =np.save("../../data/SIM1/P_STD_MEAN_sim1000_A_var", P_STD_MEAN )
-N_STD_MEAN  =np.save("../../data/SIM1/N_STD_MEAN_sim1000_A_var", N_STD_MEAN )
-S_STD_MEAN  =np.save("../../data/SIM1/S_STD_MEAN_sim1000_A_var", S_STD_MEAN )
-X_STD_MEAN  =np.save("../../data/SIM1/X_STD_MEAN_sim1000_A_var", X_STD_MEAN )
-D_STD_MEAN  =np.save("../../data/SIM1/D_STD_MEAN_sim1000_A_var", D_STD_MEAN )
-T_STD_MEAN  =np.save("../../data/SIM1/T_STD_MEAN_sim1000_A_var", T_STD_MEAN )
-C_STD_MEAN  =np.save("../../data/SIM1/C_STD_MEAN_sim1000_A_var", C_STD_MEAN )
-G_STD_STD   =np.save("../../data/SIM1/G_STD_STD _sim1000_A_var", G_STD_STD  )
-P_STD_STD   =np.save("../../data/SIM1/P_STD_STD _sim1000_A_var", P_STD_STD  )
-N_STD_STD   =np.save("../../data/SIM1/N_STD_STD _sim1000_A_var", N_STD_STD  )
-S_STD_STD   =np.save("../../data/SIM1/S_STD_STD _sim1000_A_var", S_STD_STD  )
-X_STD_STD   =np.save("../../data/SIM1/X_STD_STD _sim1000_A_var", X_STD_STD  )
-D_STD_STD   =np.save("../../data/SIM1/D_STD_STD _sim1000_A_var", D_STD_STD  )
-T_STD_STD   =np.save("../../data/SIM1/T_STD_STD _sim1000_A_var", T_STD_STD  )
-C_STD_STD   =np.save("../../data/SIM1/C_STD_STD _sim1000_A_var", C_STD_STD  )
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# G_MEAN_MEAN =np.save("../../data/SIM2/G_MEAN_MEA_sim1000_A_var_nobounds", G_MEAN_MEAN)
+# P_MEAN_MEAN =np.save("../../data/SIM2/P_MEAN_MEA_sim1000_A_var_nobounds", P_MEAN_MEAN)
+# N_MEAN_MEAN =np.save("../../data/SIM2/N_MEAN_MEA_sim1000_A_var_nobounds", N_MEAN_MEAN)
+# S_MEAN_MEAN =np.save("../../data/SIM2/S_MEAN_MEA_sim1000_A_var_nobounds", S_MEAN_MEAN)
+# X_MEAN_MEAN =np.save("../../data/SIM2/X_MEAN_MEA_sim1000_A_var_nobounds", X_MEAN_MEAN)
+# D_MEAN_MEAN =np.save("../../data/SIM2/D_MEAN_MEA_sim1000_A_var_nobounds", D_MEAN_MEAN)
+# T_MEAN_MEAN =np.save("../../data/SIM2/T_MEAN_MEA_sim1000_A_var_nobounds", T_MEAN_MEAN)
+# C_MEAN_MEAN =np.save("../../data/SIM2/C_MEAN_MEA_sim1000_A_var_nobounds", C_MEAN_MEAN)
+# G_MEAN_STD  =np.save("../../data/SIM2/G_MEAN_STD_sim1000_A_var_nobounds", G_MEAN_STD )
+# P_MEAN_STD  =np.save("../../data/SIM2/P_MEAN_STD_sim1000_A_var_nobounds", P_MEAN_STD )
+# N_MEAN_STD  =np.save("../../data/SIM2/N_MEAN_STD_sim1000_A_var_nobounds", N_MEAN_STD )
+# S_MEAN_STD  =np.save("../../data/SIM2/S_MEAN_STD_sim1000_A_var_nobounds", S_MEAN_STD )
+# X_MEAN_STD  =np.save("../../data/SIM2/X_MEAN_STD_sim1000_A_var_nobounds", X_MEAN_STD )
+# D_MEAN_STD  =np.save("../../data/SIM2/D_MEAN_STD_sim1000_A_var_nobounds", D_MEAN_STD )
+# T_MEAN_STD  =np.save("../../data/SIM2/T_MEAN_STD_sim1000_A_var_nobounds", T_MEAN_STD )
+# C_MEAN_STD  =np.save("../../data/SIM2/C_MEAN_STD_sim1000_A_var_nobounds", C_MEAN_STD )
+# G_STD_MEAN  =np.save("../../data/SIM2/G_STD_MEAN_sim1000_A_var_nobounds", G_STD_MEAN )
+# P_STD_MEAN  =np.save("../../data/SIM2/P_STD_MEAN_sim1000_A_var_nobounds", P_STD_MEAN )
+# N_STD_MEAN  =np.save("../../data/SIM2/N_STD_MEAN_sim1000_A_var_nobounds", N_STD_MEAN )
+# S_STD_MEAN  =np.save("../../data/SIM2/S_STD_MEAN_sim1000_A_var_nobounds", S_STD_MEAN )
+# X_STD_MEAN  =np.save("../../data/SIM2/X_STD_MEAN_sim1000_A_var_nobounds", X_STD_MEAN )
+# D_STD_MEAN  =np.save("../../data/SIM2/D_STD_MEAN_sim1000_A_var_nobounds", D_STD_MEAN )
+# T_STD_MEAN  =np.save("../../data/SIM2/T_STD_MEAN_sim1000_A_var_nobounds", T_STD_MEAN )
+# C_STD_MEAN  =np.save("../../data/SIM2/C_STD_MEAN_sim1000_A_var_nobounds", C_STD_MEAN )
+# G_STD_STD   =np.save("../../data/SIM2/G_STD_STD _sim1000_A_var_nobounds", G_STD_STD  )
+# P_STD_STD   =np.save("../../data/SIM2/P_STD_STD _sim1000_A_var_nobounds", P_STD_STD  )
+# N_STD_STD   =np.save("../../data/SIM2/N_STD_STD _sim1000_A_var_nobounds", N_STD_STD  )
+# S_STD_STD   =np.save("../../data/SIM2/S_STD_STD _sim1000_A_var_nobounds", S_STD_STD  )
+# X_STD_STD   =np.save("../../data/SIM2/X_STD_STD _sim1000_A_var_nobounds", X_STD_STD  )
+# D_STD_STD   =np.save("../../data/SIM2/D_STD_STD _sim1000_A_var_nobounds", D_STD_STD  )
+# T_STD_STD   =np.save("../../data/SIM2/T_STD_STD _sim1000_A_var_nobounds", T_STD_STD  )
+# C_STD_STD   =np.save("../../data/SIM2/C_STD_STD _sim1000_A_var_nobounds", C_STD_STD  )
 # %%
