@@ -2,8 +2,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from numba import njit, prange
 
 import sys
 sys.path.append('../shared')
@@ -56,10 +56,6 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
     cax8 = make_axes_locatable(ax8).append_axes('right', size=size, pad=0.05)
     cax8.get_xaxis().set_visible(False)
     cax8.get_yaxis().set_visible(False)
-
-    # for ax in (ax2,ax3):
-    #     cax = make_axes_locatable(ax).append_axes('right', size=size, pad=0.05)
-    #     # cax.axis('off')
 
     # ax2.set_yscale("log")
     ax2.plot(S, label="S")
@@ -117,10 +113,283 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
     plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
-               ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
-               pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =16, a=1, h=1, 
+        pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
 
 visualiseNICE(G,P,N,S,X,D,T,U,C)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# G - agents 
+# P - portfolio
+# N - net worth
+# S - stock price
+# X - log returns
+# D - decision
+# T - stack
+# U - sum_called_shares
+# C - margin calls
+
+@njit(parallel=True)
+def parallel_simulation(PAR_range, SIM=100):
+
+    G_MEAN = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+    G_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    P_MEAN = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+    P_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    N_MEAN = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+    N_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    S_MEAN = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+    S_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    X_MEAN = np.zeros((len(PAR_range),SIM), dtype=np.float64)
+    X_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    D_MEAN = np.zeros((len(PAR_range),SIM), dtype=np.float64)
+    D_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    T_MEAN = np.zeros((len(PAR_range),SIM), dtype=np.float64)
+    T_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    C_MEAN = np.zeros((len(PAR_range),SIM), dtype=np.float64)
+    C_STD = np.zeros((len(PAR_range),SIM),dtype=np.float64)
+
+    for i in prange(len(PAR_range)):
+        PAR_VAL = PAR_range[i]
+        for j in prange(SIM):
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =PAR_VAL, a=1, h=1, 
+                    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+
+            G_MEAN[i,j] = np.mean(G)
+            G_STD[i,j] = np.std(G)
+
+            P_MEAN[i,j] = np.mean(P)
+            P_STD[i,j] = np.std(P)
+
+            N_MEAN[i,j] = np.mean(N)
+            N_STD[i,j] = np.std(N)
+
+            S_MEAN[i,j] = np.mean(S)
+            S_STD[i,j] = np.std(S)
+
+            X_MEAN[i,j] = np.mean(X)
+            X_STD[i,j] = np.std(X)
+
+            D_MEAN[i,j] = np.mean(D)
+            D_STD[i,j] = np.std(D)
+
+            T_MEAN[i,j] = np.mean(T)
+            T_STD[i,j] = np.std(T)
+
+            C_MEAN[i,j] = np.mean(C)
+            C_STD[i,j] = np.std(C)
+
+    return (G_MEAN,G_STD,P_MEAN,P_STD, N_MEAN, N_STD, S_MEAN, S_STD, X_MEAN, X_STD, D_MEAN, D_STD, T_MEAN, T_STD, C_MEAN, C_STD)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+PAR_range = np.linspace(0,16,100)
+SIM = 1000
+
+G_MEAN, G_STD, P_MEAN, P_STD, N_MEAN, N_STD, S_MEAN, S_STD, X_MEAN, X_STD, D_MEAN, D_STD, T_MEAN, T_STD, C_MEAN, C_STD = parallel_simulation(PAR_range, SIM)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+G_MEAN_MEAN = np.mean(G_MEAN, axis = 1)
+P_MEAN_MEAN = np.mean(P_MEAN, axis = 1)
+N_MEAN_MEAN = np.mean(N_MEAN, axis = 1) 
+S_MEAN_MEAN = np.mean(S_MEAN, axis = 1)
+X_MEAN_MEAN = np.mean(X_MEAN, axis = 1)
+D_MEAN_MEAN = np.mean(D_MEAN, axis = 1)
+T_MEAN_MEAN = np.mean(T_MEAN, axis = 1) 
+C_MEAN_MEAN = np.mean(C_MEAN, axis = 1) 
+
+G_MEAN_STD = np.std(G_MEAN, axis = 1)
+P_MEAN_STD = np.std(P_MEAN, axis = 1)
+N_MEAN_STD = np.std(N_MEAN, axis = 1) 
+S_MEAN_STD = np.std(S_MEAN, axis = 1)
+X_MEAN_STD = np.std(X_MEAN, axis = 1)
+D_MEAN_STD = np.std(D_MEAN, axis = 1)
+T_MEAN_STD = np.std(T_MEAN, axis = 1) 
+C_MEAN_STD = np.std(C_MEAN, axis = 1) 
+
+G_STD_MEAN = np.mean(G_STD, axis = 1)
+P_STD_MEAN = np.mean(P_STD, axis = 1) 
+N_STD_MEAN = np.mean(N_STD, axis = 1) 
+S_STD_MEAN = np.mean(S_STD, axis = 1) 
+X_STD_MEAN = np.mean(X_STD, axis = 1) 
+D_STD_MEAN = np.mean(D_STD, axis = 1) 
+T_STD_MEAN = np.mean(T_STD, axis = 1) 
+C_STD_MEAN = np.mean(C_STD, axis = 1)
+
+G_STD_STD = np.std(G_STD, axis = 1)
+P_STD_STD = np.std(P_STD, axis = 1) 
+N_STD_STD = np.std(N_STD, axis = 1) 
+S_STD_STD = np.std(S_STD, axis = 1) 
+X_STD_STD = np.std(X_STD, axis = 1) 
+D_STD_STD = np.std(D_STD, axis = 1) 
+T_STD_STD = np.std(T_STD, axis = 1) 
+C_STD_STD = np.std(C_STD, axis = 1)
+
+plt.figure(figsize=(15,5))
+plt.ylabel("G_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, G_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =G_MEAN_MEAN+1.96*G_MEAN_STD/(np.sqrt(1000)), y2 = G_MEAN_MEAN-1.96*G_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("G_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, G_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =G_STD_MEAN+1.96*G_STD_STD/(np.sqrt(1000)), y2 = G_STD_MEAN-1.96*G_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("P_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, P_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =P_MEAN_MEAN+1.96*P_MEAN_STD/(np.sqrt(1000)), y2 = P_MEAN_MEAN-1.96*P_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("P_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, P_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =P_STD_MEAN+1.96*P_STD_STD/(np.sqrt(1000)), y2 = P_STD_MEAN-1.96*P_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("N_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, N_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =N_MEAN_MEAN+1.96*N_MEAN_STD/(np.sqrt(1000)), y2 = N_MEAN_MEAN-1.96*N_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("N_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, P_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =P_MEAN_MEAN+1.96*P_MEAN_STD/(np.sqrt(1000)), y2 = P_MEAN_MEAN-1.96*P_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("S_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, S_MEAN_MEAN, c= "r")
+plt.fill_between(x=PAR_range, y1 =S_MEAN_MEAN+1.96*S_MEAN_STD/(np.sqrt(1000)), y2 = S_MEAN_MEAN-1.96*S_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("S_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, S_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =S_STD_MEAN+1.96*S_STD_STD/(np.sqrt(1000)), y2 = S_STD_MEAN-1.96*S_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("X_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, X_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =X_MEAN_MEAN+1.96*X_MEAN_STD/(np.sqrt(1000)), y2 = X_MEAN_MEAN-1.96*X_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("X_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, X_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =X_STD_MEAN+1.96*X_STD_STD/(np.sqrt(1000)), y2 = X_STD_MEAN-1.96*X_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("D_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, D_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =D_MEAN_MEAN+1.96*D_MEAN_STD/(np.sqrt(1000)), y2 = D_MEAN_MEAN-1.96*D_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("D_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, D_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =D_STD_MEAN+1.96*D_STD_STD/(np.sqrt(1000)), y2 = D_STD_MEAN-1.96*D_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("T_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, T_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =T_MEAN_MEAN+1.96*T_MEAN_STD/(np.sqrt(1000)), y2 = T_MEAN_MEAN-1.96*T_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("T_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, T_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =T_STD_MEAN+1.96*T_STD_STD/(np.sqrt(1000)), y2 = T_STD_MEAN-1.96*T_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("C_MEAN_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range,C_MEAN_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =C_MEAN_MEAN+1.96*C_MEAN_STD/(np.sqrt(1000)), y2 = C_MEAN_MEAN-1.96*C_MEAN_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+plt.figure(figsize=(15,5))
+plt.ylabel("C_STD_MEAN")
+plt.xlabel("A parameter values")
+plt.grid()
+plt.plot(PAR_range, C_STD_MEAN, c="r")
+plt.fill_between(x=PAR_range, y1 =C_STD_MEAN+1.96*C_STD_STD/(np.sqrt(1000)), y2 = C_STD_MEAN-1.96*C_STD_STD/(np.sqrt(1000)), alpha =0.4 )
+plt.show()
+
+# %%
+G_MEAN_MEAN =np.save("../../data/SIM1/G_MEAN_MEA_sim1000_A_var", G_MEAN_MEAN)
+P_MEAN_MEAN =np.save("../../data/SIM1/P_MEAN_MEA_sim1000_A_var", P_MEAN_MEAN)
+N_MEAN_MEAN =np.save("../../data/SIM1/N_MEAN_MEA_sim1000_A_var", N_MEAN_MEAN)
+S_MEAN_MEAN =np.save("../../data/SIM1/S_MEAN_MEA_sim1000_A_var", S_MEAN_MEAN)
+X_MEAN_MEAN =np.save("../../data/SIM1/X_MEAN_MEA_sim1000_A_var", X_MEAN_MEAN)
+D_MEAN_MEAN =np.save("../../data/SIM1/D_MEAN_MEA_sim1000_A_var", D_MEAN_MEAN)
+T_MEAN_MEAN =np.save("../../data/SIM1/T_MEAN_MEA_sim1000_A_var", T_MEAN_MEAN)
+C_MEAN_MEAN =np.save("../../data/SIM1/C_MEAN_MEA_sim1000_A_var", C_MEAN_MEAN)
+G_MEAN_STD  =np.save("../../data/SIM1/G_MEAN_STD_sim1000_A_var", G_MEAN_STD )
+P_MEAN_STD  =np.save("../../data/SIM1/P_MEAN_STD_sim1000_A_var", P_MEAN_STD )
+N_MEAN_STD  =np.save("../../data/SIM1/N_MEAN_STD_sim1000_A_var", N_MEAN_STD )
+S_MEAN_STD  =np.save("../../data/SIM1/S_MEAN_STD_sim1000_A_var", S_MEAN_STD )
+X_MEAN_STD  =np.save("../../data/SIM1/X_MEAN_STD_sim1000_A_var", X_MEAN_STD )
+D_MEAN_STD  =np.save("../../data/SIM1/D_MEAN_STD_sim1000_A_var", D_MEAN_STD )
+T_MEAN_STD  =np.save("../../data/SIM1/T_MEAN_STD_sim1000_A_var", T_MEAN_STD )
+C_MEAN_STD  =np.save("../../data/SIM1/C_MEAN_STD_sim1000_A_var", C_MEAN_STD )
+G_STD_MEAN  =np.save("../../data/SIM1/G_STD_MEAN_sim1000_A_var", G_STD_MEAN )
+P_STD_MEAN  =np.save("../../data/SIM1/P_STD_MEAN_sim1000_A_var", P_STD_MEAN )
+N_STD_MEAN  =np.save("../../data/SIM1/N_STD_MEAN_sim1000_A_var", N_STD_MEAN )
+S_STD_MEAN  =np.save("../../data/SIM1/S_STD_MEAN_sim1000_A_var", S_STD_MEAN )
+X_STD_MEAN  =np.save("../../data/SIM1/X_STD_MEAN_sim1000_A_var", X_STD_MEAN )
+D_STD_MEAN  =np.save("../../data/SIM1/D_STD_MEAN_sim1000_A_var", D_STD_MEAN )
+T_STD_MEAN  =np.save("../../data/SIM1/T_STD_MEAN_sim1000_A_var", T_STD_MEAN )
+C_STD_MEAN  =np.save("../../data/SIM1/C_STD_MEAN_sim1000_A_var", C_STD_MEAN )
+G_STD_STD   =np.save("../../data/SIM1/G_STD_STD _sim1000_A_var", G_STD_STD  )
+P_STD_STD   =np.save("../../data/SIM1/P_STD_STD _sim1000_A_var", P_STD_STD  )
+N_STD_STD   =np.save("../../data/SIM1/N_STD_STD _sim1000_A_var", N_STD_STD  )
+S_STD_STD   =np.save("../../data/SIM1/S_STD_STD _sim1000_A_var", S_STD_STD  )
+X_STD_STD   =np.save("../../data/SIM1/X_STD_STD _sim1000_A_var", X_STD_STD  )
+D_STD_STD   =np.save("../../data/SIM1/D_STD_STD _sim1000_A_var", D_STD_STD  )
+T_STD_STD   =np.save("../../data/SIM1/T_STD_STD _sim1000_A_var", T_STD_STD  )
+C_STD_STD   =np.save("../../data/SIM1/C_STD_STD _sim1000_A_var", C_STD_STD  )
+# %%
