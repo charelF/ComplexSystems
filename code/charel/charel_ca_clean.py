@@ -60,7 +60,7 @@ def moving_average(x, w):
 def visualiseNICE(G, P, N, S, X, D, T, U, C):
     fig, (ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8) = plt.subplots(
         ncols=1, nrows=8, figsize=(12,12), sharex=True, gridspec_kw = 
-        {'wspace':0, 'hspace':0.05, 'height_ratios':[1,2,1,1,1,1,1,1]}
+        {'wspace':0, 'hspace':0.05, 'height_ratios':[2,2,1,1,1,1,1,1]}
     )
     im1 = ax1.imshow(G.T, cmap="bone", interpolation="None", aspect="auto")
     im4 = ax4.imshow(P.T, cmap="hot", interpolation="None", aspect="auto")
@@ -166,19 +166,19 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
 pd = 0.05
 pe = 0.01
 ph = 0.05
-pa = 0.3
+# pa = 0.3
 
 N0 = 200
-N1 = 20
+N1 = 100
 
-A = 2
+A = 3
 a = 1
 h = 1
 
 # probabilities of investor types
-pi1 = 0.5  # original CA
-pi2 = 0.25  # momentum
-pi3 = 0.25  # invert / fundamental
+pi1 = 0.8  # original CA
+pi2 = 0.1  # momentum
+pi3 = 0.1  # invert / fundamental
 
 # max absolute influence
 max_I = 2
@@ -188,14 +188,14 @@ min_account_balance = 200
 initial_stock_price = 100
 
 drift = 0  # not really working
-max_look_back = 10
-max_treshold = 1
+max_look_back = 3
+max_treshold = 3
 
 # ==================================
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-# G[0] = ((np.arange(0,N1)*6//N1)%3)-1
+G[0] = ((np.arange(0,N1)*6//N1)%3)-1
 # G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
@@ -257,7 +257,7 @@ for t in range(N0-1):
 
         if G[t,i] != 0:
             
-            if investor_type[i] == 0 or investor_type[i]==2:
+            if investor_type[i] == 0:
                 k = coord2k[i]
                 zeta = random.uniform(-1,1)
                 cluster_influence = A * np.mean(G[t,k2coord[k]]) * xi[k]
