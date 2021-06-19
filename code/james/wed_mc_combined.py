@@ -179,10 +179,10 @@ h = 1
 max_I = 2
 
 initial_account_balance = 1000
-min_account_balance = 950
+min_account_balance = 900
 initial_stock_price = 100
 
-drift = 0  # not really working
+drift = 0.02  # not really working
 max_look_back = 10
 max_treshold = 1
 
@@ -190,8 +190,6 @@ max_treshold = 1
 
 G = np.zeros(shape=(N0,N1))
 G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)
-# G[0] = ((np.arange(0,N1)*6//N1)%3)-1
-# G[0] = ((np.arange(0,N1)*1//N1)%3)-1
 
 P = np.zeros_like(G) # portfolio: number of stocks
 N = np.zeros_like(G) # Net worth
@@ -276,7 +274,7 @@ for t in range(N0-1):
 
             change = (S[t] - initial_stock_price) / initial_stock_price
 
-            CLUSTER_DEPENDENCE_PROB = 0.5
+            CLUSTER_DEPENDENCE_PROB = 0.6
             if random.random() < CLUSTER_DEPENDENCE_PROB:
                 for j in k2coord[k]:  # for each coordinate in cluster k
                     eta = random.uniform(-1,1)  # different for each cell
