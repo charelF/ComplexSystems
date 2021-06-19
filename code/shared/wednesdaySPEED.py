@@ -108,6 +108,7 @@ def simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
 
     stack = 0
     max_to_be_sold = N1
+    max_stack = 5*N1
 
     investor_type = np.zeros(shape=N1, dtype=np.int8)
     for i in range(N1):
@@ -123,6 +124,7 @@ def simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
     for t in range(N0-1):
         Ncl, Nk, k2coord, coord2k = cluster_info(G[t])
 
+        stack = trunc(stack, max_stack, -max_stack)
         T[t] = stack
         Xt = 0
         for k, size in enumerate(Nk):
