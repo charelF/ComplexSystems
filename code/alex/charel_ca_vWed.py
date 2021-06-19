@@ -59,7 +59,7 @@ def moving_average(x, w):
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-plot=False
+plot=True
 
 N0 = 1000
 N1 = 100
@@ -90,7 +90,7 @@ PERF_AGENTS = 0.9    # portfolio agent PERF_AGENTS must be > MA_AGENTS
 CA_NM_AGENTS_RANGE = np.linspace(0,1,20)
 
 
-SIM = 10
+SIM = 1
 LR = np.zeros((len(CA_NM_AGENTS_RANGE),SIM))
 
 
