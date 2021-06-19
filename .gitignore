@@ -138,6 +138,7 @@ dmypy.json
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+settings.json
 
 # Local History for Visual Studio Code
 .history/
