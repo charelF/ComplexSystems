@@ -165,7 +165,9 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
 
 # trigger a shock
 trigger = False
-bound = True
+
+# introduce resistance and support
+bound = False
 
 pd = 0.05
 pe = 0.01
