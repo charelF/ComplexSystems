@@ -146,27 +146,29 @@ def simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
         S_ma4[t+1] = np.mean(S[max(0, (t+1 - 4)):t+1])
         S_ma10[t+1] = np.mean(S[max(0, (t+1 - 10)):t+1])
 
-        if t<2:
+        std = np.std(S[:t+1])
+
+        if t<2 or std == 0:
             ma_diff_norm2 = 0
             ma_diff_norm4 = 0
             ma_diff_norm10 = 0
         elif t<4:
-            ma_diff2 = (S_ma2[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+            ma_diff2 = (S_ma2[t+1] - S[t+1]) / std # negative if stock>MA
             ma_diff_norm2 = 2 / (1 + np.exp(-2 * ma_diff2)) - 1
             ma_diff_norm4 = 0
             ma_diff_norm10 = 0
         elif t<10:
-            ma_diff2 = (S_ma2[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+            ma_diff2 = (S_ma2[t+1] - S[t+1]) / std # negative if stock>MA
             ma_diff_norm2 = 2 / (1 + np.exp(-2 * ma_diff2)) - 1
-            ma_diff4 = (S_ma4[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+            ma_diff4 = (S_ma4[t+1] - S[t+1]) / std # negative if stock>MA
             ma_diff_norm4 = 2 / (1 + np.exp(-2 * ma_diff4)) - 1
             ma_diff_norm10 = 0
         else:
-            ma_diff2 = (S_ma2[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+            ma_diff2 = (S_ma2[t+1] - S[t+1]) / std # negative if stock>MA
             ma_diff_norm2 = 2 / (1 + np.exp(-2 * ma_diff2)) - 1
-            ma_diff4 = (S_ma4[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+            ma_diff4 = (S_ma4[t+1] - S[t+1]) / std # negative if stock>MA
             ma_diff_norm4 = 2 / (1 + np.exp(-2 * ma_diff4)) - 1
-            ma_diff10 = (S_ma10[t+1] - S[t+1]) / np.std(S[:t+1]) # negative if stock>MA
+            ma_diff10 = (S_ma10[t+1] - S[t+1]) / std # negative if stock>MA
             ma_diff_norm10 = 2 / (1 + np.exp(-2 * ma_diff10)) - 1
                             
         xi = np.random.uniform(-1, 1, size=Ncl)  # unique xi for each cluster k
