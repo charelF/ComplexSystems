@@ -155,20 +155,9 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
     # plt.savefig("tmp.png", dpi=300)
     plt.show()
 
-#%%
-
-# for i in range(100):
-
-
-    # print(i)
-##visualiseNICE(G, P, N, S, X, D, T, U, C)
-
 # %%
-threshold = -0.3
-condition = X < threshold
-print(contiguous_regions(condition).shape[0])
 
-# %%
+## Influence of A upon Crashes
 
 ## sim parameters
 sims = 10
@@ -177,7 +166,7 @@ A_vals = 10
 
 ## structures
 A_range = np.linspace(3, 5, A_vals)
-res = np.zeros((sims, A_vals))
+res_A = np.zeros((sims, A_vals))
 
 for i in range(sims):
     print(i)
@@ -186,18 +175,20 @@ for i in range(sims):
                 ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = val, a=1, h=1, 
                 pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
         condition = X < threshold
-        res[i, j] = contiguous_regions(condition).shape[0]
+        res_A[i, j] = contiguous_regions(condition).shape[0]
     
 # %%
 
 fig = plt.figure(figsize=(12, 8))
-plt.plot(A_range, np.mean(res, axis=0), '--', color="C4")
+plt.errorbar(A_range, np.mean(res_A, axis=0), yerr=np.std(res_A, axis=0), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel("A")
 plt.show()
 
 # %%
+
+## Influence of p_h upon Crashes
 
 ## sim parameters
 sims = 10
@@ -220,7 +211,7 @@ for i in range(sims):
 # %%
 
 fig = plt.figure(figsize=(12, 8))
-plt.plot(ph_range, np.mean(res_ph, axis=0), '--', color="C4")
+plt.errorbar(ph_range, np.mean(res_ph, axis=0), yerr=np.std(res_ph, axis=0), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel(r"$p_h$")
@@ -228,3 +219,97 @@ plt.show()
     
 # %%
 
+## Influence of pd upon Crashes
+
+## sim parameters
+sims = 10
+threshold = -0.15
+pd_vals = 10
+
+## structures
+pd_range = np.linspace(0.03, 0.07, pd_vals)
+res_pd = np.zeros((sims, pd_vals))
+
+for i in range(sims):
+    for j, val in enumerate(pd_range):
+        G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = val, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+        condition = X < threshold
+        res_pd[i, j] = contiguous_regions(condition).shape[0]
+
+# %%
+
+fig = plt.figure(figsize=(12, 8))
+plt.errorbar(pd_range, np.mean(res_pd, axis=0), yerr=np.std(res_pd, axis=0), color="C4")
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel(r"$p_d$")
+plt.show()
+
+# %% 
+
+## Influence of number of agents upon Crashes
+
+## sim parameters
+sims = 15
+threshold = -0.15
+trader_vals = 10
+
+## structures
+trader_range = np.rint(np.linspace(10, 300, trader_vals)).astype(np.int32)
+res_traders = np.zeros((sims, trader_vals))
+
+for i in range(sims):
+    for j, val in enumerate(trader_range):
+        print(val)
+        G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = val, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+        condition = X < threshold
+        res_traders[i, j] = contiguous_regions(condition).shape[0]
+
+# %%
+
+fig = plt.figure(figsize=(12, 8))
+plt.errorbar(trader_range, np.mean(res_traders, axis=0), yerr=np.std(res_traders, axis=0), color="C4")
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel(r"Number of Agents")
+plt.show()
+
+
+# %%
+
+## Influence of number of agents upon Crashes
+
+## sim parameters
+sims = 10
+threshold = -0.15
+pi2_vals = 10
+
+## structures
+pi2_range = np.linspace(0.05, 0.45, pi2_vals)
+res_pi2 = np.zeros((sims, pi2_vals))
+
+for i in range(sims):
+    for j, val in enumerate(pi2_range):
+        print(val)
+        G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = val, pi3 = 0.5 - val)
+        condition = X < threshold
+        res_pi2[i, j] = contiguous_regions(condition).shape[0]
+
+# %%
+
+pi3_range = 0.5 - pi2_range
+
+fig = plt.figure(figsize=(12, 8))
+plt.plot(pi3_range / pi2_range, np.mean(res_pi2, axis=0), color="C4")
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel(r"$\frac{pi_2}{pi_3}$")
+plt.show()
+
+# %%
