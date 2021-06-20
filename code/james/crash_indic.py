@@ -39,12 +39,19 @@ def contiguous_regions(condition):
     idx += 1
 
     if condition[0]:
+        idx_copy = np.zeros(idx.shape[0] + 1)
+        idx_copy[1:] = idx
+        idx = idx_copy
         # If the start of condition is True prepend a 0
-        idx = np.r_[0, idx]
-
+        ## idx = np.r_[0, idx]
     if condition[-1]:
+        idx_copy = np.zeros(idx.shape[0] + 1)
+        idx_copy[:-1] = idx
+        idx_copy[-1] = condition.size
+        idx = idx_copy
+
         # If the end of condition is True, append the length of the array
-        idx = np.r_[idx, condition.size] # Edit
+        ## idx = np.r_[idx, condition.size] # Edit
 
     # Reshape the result into two columns
     idx.shape = (-1,2)
@@ -160,7 +167,7 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
 ## Influence of A upon Crashes
 
 ## sim parameters
-sims = 10
+sims = 1
 threshold = -0.15
 A_vals = 10
 
@@ -313,3 +320,65 @@ plt.xlabel(r"$\frac{pi_2}{pi_3}$")
 plt.show()
 
 # %%
+
+## Influence of threshold upon Crashes
+
+## sim parameters
+sims = 15
+threshold_vals = 10
+
+## structures
+threshold_range = np.linspace(-0.05, -0.5, threshold_vals)
+res_threshold = np.zeros((sims, threshold_vals))
+
+for i in range(sims):
+    G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+    for j, val in enumerate(threshold_range):
+        condition = X < val
+        res_threshold[i, j] = contiguous_regions(condition).shape[0]
+
+# %%
+
+fig = plt.figure(figsize=(12, 8))
+plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=np.std(res_threshold, axis=0), color="C4")
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel("Threshold")
+plt.show()
+
+# %%
+
+## Influence of number of consecutive time periods required for crash
+
+## sim parameters
+sims = 10
+threshold = -0.01
+
+## structures
+threshold_range = [1, 2, 3, 4, 5, 6, 7]
+res_threshold = np.zeros((sims, len(threshold_range)))
+
+for i in range(sims):
+    G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+    for j, val in enumerate(threshold_range):
+        condition = X < threshold
+        continuous_reg = contiguous_regions(condition)
+        continuous_reg_filtered = continuous_reg[(np.max(continuous_reg, axis=1) - np.min(continuous_reg, axis=1)) > val]
+        # print(i, j)
+        # print(res_threshold.shape)
+        # print(continuous_reg_filtered.shape)
+        res_threshold[i, j] = continuous_reg_filtered.shape[0]
+
+fig = plt.figure(figsize=(12, 8))
+plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=np.std(res_threshold, axis=0), color="C4")
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel("Consecutive Periods Required for Crash")
+plt.show()
+
+# %%
+
