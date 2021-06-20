@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import scipy.stats as st
 import math
 import random
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -291,30 +292,44 @@ plt.show()
 ## Influence of number of agents upon Crashes
 
 ## sim parameters
-sims = 20
+sims = 55
 threshold = -0.15
-pi2_vals = 10
+pi2_vals = 20
 
 ## structures
-pi2_range = np.linspace(0.05, 0.45, pi2_vals)
-res_pi2 = np.zeros((sims, pi2_vals))
+n_range = [10, 25, 2000]
+pi2_range = np.linspace(0.01, 0.45, pi2_vals)
+res_pi2 = np.zeros((sims, pi2_vals, len(n_range)))
 
-for i in range(sims):
-    for j, val in enumerate(pi2_range):
-        print(val)
-        G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
-                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
-                pi1 = 0.5, pi2 = val, pi3 = 0.5 - val)
-        condition = X < threshold
-        res_pi2[i, j] = contiguous_regions(condition).shape[0]
+for k, n_val in enumerate(n_range):
+    for i in range(sims):
+        print(i)
+        for j, val in enumerate(pi2_range):
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=n_val, N1 = 100, A = 4, a=1, h=1, 
+                    pi1 = 0.5, pi2 = val, pi3 = 0.5 - val)
+            condition = X < threshold
+            res_pi2[i, j, k] = contiguous_regions(condition).shape[0]
+#%%
+
+np.save("arrs/pi2_crash_simulation", res_pi2)
 
 # %%
 
+colors = ["C3", "C7", "C9"]
+
 fig = plt.figure(figsize=(12, 8))
-plt.errorbar(pi2_range, np.mean(res_pi2, axis=0), yerr=1.96*np.std(res_pi2, axis=0) / np.sqrt(sims), color="C4")
+for k, n_val in enumerate(n_range):
+
+    m = np.mean(res_pi2[:,:,k], axis=0)
+    ci = 1.96*np.std(res_pi2[:,:,k]) / np.sqrt(sims)
+    plt.fill_between(pi2_range, m-ci, m+ci, alpha=0.2)
+    plt.errorbar(pi2_range, np.mean(res_pi2[:,:,k], axis=0), yerr=1.96*np.std(res_pi2[:,:,k], axis=0) / np.sqrt(sims), color=colors[k], label=f"N={n_range[k]}")
 plt.grid(alpha=0.2)
-plt.ylabel("Crashes")
-plt.xlabel(r"$\frac{pi_2}{pi_3}$")
+plt.legend(fontsize=14)
+plt.ylabel("Crashes", fontsize=14)
+plt.xlabel("pi_2", fontsize=14)
+plt.savefig("imgs/pi_crashes_analog", dpi=350)
 plt.show()
 
 # %%
@@ -406,3 +421,32 @@ plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel(r"$pi3$")
 plt.show()
+
+#%%
+
+## hypothesis test, does adding portfolio management to the model result in more crashes 
+
+## sim parameters
+sims = 50
+prob_range = [0, 0.25]
+threshold = 0.15
+
+## structures
+res_pm = np.zeros((len(prob_range), sims))
+
+for i in range(sims):
+    print(i)
+    for j, val in enumerate(prob_range):
+        G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = val, pi3 = 0.5 - val)
+        condition = X < threshold
+        res_pm[j, i] = contiguous_regions(condition).shape[0]
+
+#%%
+
+print(res_pm.shape)
+print(res_pm[0,:].mean())
+print(res_pm[1,:].mean())
+st.ttest_ind(res_pm[0,:], res_pm[1,:], alternative="greater")
+# %%
