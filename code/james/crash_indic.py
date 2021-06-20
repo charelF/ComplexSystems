@@ -279,7 +279,7 @@ for i in range(sims):
 # %%
 
 fig = plt.figure(figsize=(12, 8))
-plt.errorbar(trader_range, np.mean(res_traders, axis=0), yerr=np.std(res_traders, axis=0), color="C4")
+plt.errorbar(trader_range, np.mean(res_traders, axis=0), yerr=1.96*np.std(res_traders, axis=0) / np.sqrt(sims), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel(r"Number of Agents")
@@ -374,7 +374,7 @@ for i in range(sims):
         res_threshold[i, j] = continuous_reg_filtered.shape[0]
 
 fig = plt.figure(figsize=(12, 8))
-plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=np.std(res_threshold, axis=0), color="C4")
+plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=1.96*np.std(res_threshold, axis=0) / np.sqrt(sims), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel("Consecutive Periods Required for Crash")
