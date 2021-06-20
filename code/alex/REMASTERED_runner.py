@@ -120,16 +120,17 @@ visualiseNICE(G,P,N,S,X,D,T,U,C)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
-        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
+        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =100, a=1, h=1, 
         pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
 
 visualiseNICE(G,P,N,S,X,D,T,U,C)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+series = np.load("../../data/ENTROPYPLOT/E1_S_timeseries.npy")
 tau = 9
 N = 100
-series = S
+# series = S
 splt = np.array_split(series, N)
-q_vals = np.linspace(-8, 8, 1000)
+q_vals = np.linspace(-20, 20, 1000)
 
 ## structs
 C_q = np.zeros(q_vals.shape[0] - 2) 
@@ -162,11 +163,21 @@ for l in range(1, q_vals.shape[0] - 1):
     S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
 
 
-plt.plot(q_vals[2:], S_q[:-1])
+plt.plot(q_vals[2:], -S_q[:-1])
 plt.show()
 
 plt.plot(q_vals[2:],C_q/np.max(C_q))
 plt.show()
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plt.yscale("log")
+plt.xscale("log")
+
+alpha = np.linspace(3,3,1)
+
+for i, alpha_val in enumerate(alpha):
+    x_val = np.abs(-0.93+q_vals[2:])**(alpha_val)
+    plt.plot(x_val, C_q )
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
