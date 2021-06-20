@@ -279,7 +279,7 @@ for i in range(sims):
 # %%
 
 fig = plt.figure(figsize=(12, 8))
-plt.errorbar(trader_range, np.mean(res_traders, axis=0), yerr=np.std(res_traders, axis=0), color="C4")
+plt.errorbar(trader_range, np.mean(res_traders, axis=0), yerr=1.96*np.std(res_traders, axis=0) / np.sqrt(sims), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel(r"Number of Agents")
@@ -291,7 +291,7 @@ plt.show()
 ## Influence of number of agents upon Crashes
 
 ## sim parameters
-sims = 10
+sims = 20
 threshold = -0.15
 pi2_vals = 10
 
@@ -310,10 +310,8 @@ for i in range(sims):
 
 # %%
 
-pi3_range = 0.5 - pi2_range
-
 fig = plt.figure(figsize=(12, 8))
-plt.plot(pi3_range / pi2_range, np.mean(res_pi2, axis=0), color="C4")
+plt.errorbar(pi2_range, np.mean(res_pi2, axis=0), yerr=1.96*np.std(res_pi2, axis=0) / np.sqrt(sims), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel(r"$\frac{pi_2}{pi_3}$")
@@ -374,7 +372,7 @@ for i in range(sims):
         res_threshold[i, j] = continuous_reg_filtered.shape[0]
 
 fig = plt.figure(figsize=(12, 8))
-plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=np.std(res_threshold, axis=0), color="C4")
+plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=1.96*np.std(res_threshold, axis=0) / np.sqrt(sims), color="C4")
 plt.grid(alpha=0.2)
 plt.ylabel("Crashes")
 plt.xlabel("Consecutive Periods Required for Crash")
@@ -382,3 +380,29 @@ plt.show()
 
 # %%
 
+## sim parameters
+sims = 20
+threshold = -0.15
+pi3_vals = 10
+
+## structures
+pi3_range = np.linspace(0.05, 0.45, pi3_vals)
+res_pi3 = np.zeros((sims, pi3_vals))
+
+for i in range(sims):
+    for j, val in enumerate(pi3_range):
+        print(val)
+        G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+                pi1 = 0.5, pi2 = 0.5 - val, pi3 = val)
+        condition = X < threshold
+        res_pi3[i, j] = contiguous_regions(condition).shape[0]
+
+# %%
+
+fig = plt.figure(figsize=(12, 8))
+plt.errorbar(pi3_range, np.mean(res_pi3, axis=0), yerr=1.96*np.std(res_pi3, axis=0) / np.sqrt(sims), color="C4")
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel(r"$pi3$")
+plt.show()
