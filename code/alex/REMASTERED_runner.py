@@ -167,12 +167,6 @@ plt.show()
 
 plt.plot(q_vals[2:],C_q/np.max(C_q))
 plt.show()
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-np.save("../../data/ENTROPYPLOT/E1_S_timeseries", S)
-np.save("../../data/ENTROPYPLOT/E1_C_q", C_q)
-np.save("../../data/ENTROPYPLOT/E1_S_q_entropy", S_q)
-np.save("../../data/ENTROPYPLOT/E1_q_vals", q_vals)
-
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
