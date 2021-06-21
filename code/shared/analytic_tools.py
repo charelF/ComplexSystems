@@ -23,7 +23,43 @@ def fractal_latent_heat(series, tau, N):
 
     ## structs
     C_q = np.zeros(q_vals.shape[0] - 2) 
+    S_q = np.zeros(q_vals.shape[0] - 1) 
     X_q = np.zeros(q_vals.shape[0])
+    mu_i = np.zeros(len(splt))
+    denom_sum = 0
+
+    ## eq 10
+    for i in range(len(splt)):
+        denom_sum += np.abs(splt[i][tau] - splt[i][0])
+
+    for j in range(len(splt)):
+        mu_i[j] = np.abs(splt[j][tau] - splt[j][0]) / denom_sum
+
+    lhs = np.zeros((q_vals.shape[0]))
+    rhs = np.zeros((q_vals.shape[0]))
+
+    for k, val in enumerate(q_vals):
+        ## eq 11
+        lhs[k] = np.log(np.sum(mu_i**val))
+        rhs[k] = np.log(N)
+        ## solve for slope of log-log
+        ## x_q equivelent to tau(q) in casenna
+        X_q[k] = lhs[k] / rhs[k]
+
+    for l in range(1, q_vals.shape[0] - 1):
+        C_q[l - 1] = X_q[l + 1] - 2 * X_q[l] + X_q[l - 1]
+        S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
+
+    return q_vals, C_q, S_q
+
+def fractal_latent_heat_alex(series, tau, N):
+    splt = np.array_split(series, N)
+    q_vals = np.linspace(-50, 50, 1000)
+
+    ## structs
+    C_q = np.zeros(q_vals.shape[0] - 2) 
+    X_q = np.zeros(q_vals.shape[0])
+    S_q = np.zeros(q_vals.shape[0] - 1)
     mu_i = np.zeros(len(splt))
     denom_sum = 0
 
@@ -48,5 +84,6 @@ def fractal_latent_heat(series, tau, N):
     # ## cannot obtain C_q for first and last q vals
     for l in range(1, q_vals.shape[0] - 1):
         C_q[l - 1] = X_q[l + 1] - 2 * X_q[l] + X_q[l - 1]
+        S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
 
-    return q_vals, C_q
+    return q_vals, C_q, S_q, X_q
