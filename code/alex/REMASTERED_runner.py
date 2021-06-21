@@ -10,7 +10,6 @@ sys.path.append('../shared')
 
 from wednesdaySPEED import *
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 def moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
 
@@ -113,11 +112,244 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
     plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =16, a=1, h=1, 
+G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =0, a=1, h=1, 
         pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
 
 visualiseNICE(G,P,N,S,X,D,T,U,C)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+        ph = 0.0485, pa = 0.7, N0=1000, N1 = 1000, A =0, a=1, h=1, 
+        pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+
+visualiseNICE(G,P,N,S,X,D,T,U,C)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#---------------PHASE TRANSITION-------------------#
+# series = np.load("../../data/ENTROPYPLOT/E1_S_timeseries.npy")
+tau = 9
+N = 100
+series = S
+splt = np.array_split(series, N)
+q_vals = np.linspace(-50, 50, 1000)
+
+## structs
+C_q = np.zeros(q_vals.shape[0] - 2) 
+X_q = np.zeros(q_vals.shape[0])
+S_q = np.zeros(q_vals.shape[0] - 1)
+mu_i = np.zeros(len(splt))
+denom_sum = 0
+
+## eq 10
+for i in range(len(splt)):
+    denom_sum += np.abs(splt[i][tau] - splt[i][0])
+
+for j in range(len(splt)):
+    mu_i[j] = np.abs(splt[j][tau] - splt[j][0]) / denom_sum
+
+lhs = np.zeros((q_vals.shape[0]))
+rhs = np.zeros((q_vals.shape[0]))
+
+for k, val in enumerate(q_vals):
+    ## eq 11
+    lhs[k] = np.log(np.sum(mu_i**val))
+    rhs[k] = np.log(N)
+    ## solve for slope of log-log
+    ## x_q equivelent to tau(q) in casenna
+    X_q[k] = lhs[k] / rhs[k]
+
+# ## cannot obtain C_q for first and last q vals
+for l in range(1, q_vals.shape[0] - 1):
+    C_q[l - 1] = X_q[l + 1] - 2 * X_q[l] + X_q[l - 1]
+    S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plt.figure(figsize=(10,5))
+plt.plot(q_vals/40, X_q/np.max(X_q), c="r", label="Free Energy - H")
+plt.plot(q_vals[2:]/40, -S_q[:-1]/np.max(-S_q), c="b", label="Entropy - dH/dT")
+plt.plot(q_vals[2:]/40,C_q/np.max(C_q), c="g", label="Specific heat- dH^2/dT^2")
+plt.ylabel("")
+plt.xlabel("Temperature")
+plt.legend()
+plt.show()
+
+
+plt.figure(figsize=(10,5))
+plt.plot(q_vals, X_q)
+plt.ylabel("H - Free Energy")
+plt.xlabel("Temperature")
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(q_vals[2:], -S_q[:-1])
+plt.ylabel("S - Entropy")
+plt.xlabel("Temperature")
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(q_vals[2:],C_q)
+plt.ylabel("C_p - Specific heat")
+plt.xlabel("Temperature")
+plt.show()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@njit(parallel=True)
+def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, threshold, N0):
+    
+    crashes = np.zeros((len(PAR1_range), SIM), dtype=np.float64)
+    S_arrays = np.zeros((len(PAR1_range), SIM, N0), dtype=np.float64)
+
+    for i in prange(len(PAR1_range)):
+        PAR1_VAL = PAR1_range[i]
+        PAR2_VAL = PAR2_range[i]
+        PAR3_VAL = PAR3_range[i]
+        for j in prange(SIM):
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=N0, N1 = 100, A =4, a=1, h=1, 
+                    pi1 = PAR1_VAL, pi2 = PAR2_VAL, pi3 = PAR3_VAL)
+            # CRASH DATA         
+            condition = X < threshold
+            crashes[i,j] = contiguous_regions(condition).shape[0]
+            S_arrays[i,j] = S
+
+    return (crashes, S_arrays)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+PAR1_range = np.linspace(0, 1 ,50)
+PAR2_range = (1-PAR1_range)*0.3
+PAR3_range = (1-PAR1_range)*0.2
+
+SIM = 1000
+threshold = 0.2
+N0 = 1000
+
+
+crashes, S_ARRAY = parallel_simulation_phase_transition(PAR1_range,PAR2_range,PAR3_range, SIM, threshold, N0)
+
+
+
+crashes_mean = np.mean(crashes, axis=1)
+crashes_std = np.std(crashes, axis=1)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tau = 9
+N = 100
+
+q_vals = np.linspace(-5, 5, 100)
+C_q = np.zeros(q_vals.shape[0] - 2) 
+X_q = np.zeros(q_vals.shape[0])
+S_q = np.zeros(q_vals.shape[0] - 1)
+mu_i = np.zeros(len(splt))
+lhs = np.zeros((q_vals.shape[0]))
+rhs = np.zeros((q_vals.shape[0]))
+
+
+
+C_q_collector = np.empty((len(PAR1_range), SIM, *C_q.shape))
+X_q_collector = np.empty((len(PAR1_range), SIM, *X_q.shape))
+S_q_collector = np.empty((len(PAR1_range), SIM, *S_q.shape))
+
+
+for i_par,par in enumerate(PAR1_range):
+    print(i_par)
+    for sim in range(SIM):
+        series = S_ARRAY[i_par, sim]
+        splt = np.array_split(series, N)
+        
+        ## structs
+        denom_sum = 0
+
+        ## eq 10
+        for i in range(len(splt)):
+            denom_sum += np.abs(splt[i][tau] - splt[i][0])
+
+        for j in range(len(splt)):
+            mu_i[j] = np.abs(splt[j][tau] - splt[j][0]) / denom_sum
+
+
+        for k, val in enumerate(q_vals):
+            ## eq 11
+            lhs[k] = np.log(np.sum(mu_i**val))
+            rhs[k] = np.log(N)
+            ## solve for slope of log-log
+            ## x_q equivelent to tau(q) in casenna
+            X_q[k] = lhs[k] / rhs[k]
+
+        # ## cannot obtain C_q for first and last q vals
+        for l in range(1, q_vals.shape[0] - 1):
+            C_q[l - 1] = X_q[l + 1] - 2 * X_q[l] + X_q[l - 1]
+            S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
+
+        C_q_collector[i_par, sim] = C_q
+        X_q_collector[i_par, sim] = X_q
+        S_q_collector[i_par, sim] = S_q
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+C_q_collector_no_nan = np.nan_to_num(C_q_collector, nan=0)
+C_q_mean = np.mean(C_q_collector_no_nan, axis=1)
+print(C_q_mean.shape)
+
+X_q_collector_no_nan = np.nan_to_num(X_q_collector, nan=0)
+X_q_mean = np.mean(X_q_collector_no_nan, axis=1)
+print(X_q_mean.shape)
+
+S_q_collector_no_nan = np.nan_to_num(S_q_collector, nan=0)
+S_q_mean = np.mean(S_q_collector_no_nan, axis=1)
+print(S_q_mean.shape)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plt.figure(figsize=(6, 4))
+plt.imshow(C_q_mean, aspect="auto", interpolation="None", vmin=0, vmax=0.01)
+plt.colorbar()
+plt.show()
+
+plt.figure(figsize=(6, 4))
+plt.imshow(S_q_mean, aspect="auto", interpolation="None")
+plt.colorbar()
+plt.show()
+
+plt.figure(figsize=(6, 4))
+plt.imshow(X_q_mean, aspect="auto", interpolation="None")
+plt.colorbar()
+plt.show()
+
+np.save("../../data/PHASE/C_q_mean", C_q_mean)
+np.save("../../data/PHASE/S_q_mean", S_q_mean)
+np.save("../../data/PHASE/X_q_mean", X_q_mean)
+np.save("../../data/PHASE/q_vals", q_vals)
+np.save("../../data/PHASE/S_ARRAY", S_ARRAY)
+
+
+
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+lags = np.arange(10,100,10)
+# lags = [1] 
+
+miu = np.zeros((len(lags),500))
+for i, lag in enumerate(lags):
+    miu_bc = S[lag:] - S[0:-lag]
+    miu[i,:]= miu_bc[500-lag:]
+    plt.plot(miu[i,:].T)
+    plt.show()
+#     miu[i,:]= miu_bc[200-lag:]
+
+# plt.figure(figsize=(15,5))
+# plt.plot(miu.T)
+# plt.show()
+
+# miu_cut = miu[::, 1800:2600]
+# plt.figure(figsize=(15,5))
+# plt.plot(np.mean(miu_cut, axis=0))
+# plt.show()
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # G - agents 
 # P - portfolio
@@ -188,6 +420,7 @@ def parallel_simulation(PAR_range, SIM=100):
             C_STD[i,j] = np.std(C)
 
     return (G_MEAN,G_STD,P_MEAN,P_STD, N_MEAN, N_STD, S_MEAN, S_STD, X_MEAN, X_STD, D_MEAN, D_STD, T_MEAN, T_STD, C_MEAN, C_STD)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PAR_range = np.linspace(0,16,100)
 SIM = 1000
@@ -207,40 +440,40 @@ G_MEAN, G_STD, P_MEAN, P_STD, N_MEAN, N_STD, S_MEAN, S_STD, X_MEAN, X_STD, D_MEA
                     # ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =PAR_VAL, a=1, h=1, 
                     # pi1 = 0.5, pi2 = 0.3, pi3 = 0.2) 
 
-# PAR_range = np.linspace(0,16,100)
+PAR_range = np.linspace(0,16,100)
 
-# G_MEAN_MEAN =np.load("../../data/SIM1/G_MEAN_MEA_sim1000_A_var.npy")
-# P_MEAN_MEAN =np.load("../../data/SIM1/P_MEAN_MEA_sim1000_A_var.npy")
-# N_MEAN_MEAN =np.load("../../data/SIM1/N_MEAN_MEA_sim1000_A_var.npy")
-# S_MEAN_MEAN =np.load("../../data/SIM1/S_MEAN_MEA_sim1000_A_var.npy")
-# X_MEAN_MEAN =np.load("../../data/SIM1/X_MEAN_MEA_sim1000_A_var.npy")
-# D_MEAN_MEAN =np.load("../../data/SIM1/D_MEAN_MEA_sim1000_A_var.npy")
-# T_MEAN_MEAN =np.load("../../data/SIM1/T_MEAN_MEA_sim1000_A_var.npy")
-# C_MEAN_MEAN =np.load("../../data/SIM1/C_MEAN_MEA_sim1000_A_var.npy")
-# G_MEAN_STD  =np.load("../../data/SIM1/G_MEAN_STD_sim1000_A_var.npy")
-# P_MEAN_STD  =np.load("../../data/SIM1/P_MEAN_STD_sim1000_A_var.npy")
-# N_MEAN_STD  =np.load("../../data/SIM1/N_MEAN_STD_sim1000_A_var.npy")
-# S_MEAN_STD  =np.load("../../data/SIM1/S_MEAN_STD_sim1000_A_var.npy")
-# X_MEAN_STD  =np.load("../../data/SIM1/X_MEAN_STD_sim1000_A_var.npy")
-# D_MEAN_STD  =np.load("../../data/SIM1/D_MEAN_STD_sim1000_A_var.npy")
-# T_MEAN_STD  =np.load("../../data/SIM1/T_MEAN_STD_sim1000_A_var.npy")
-# C_MEAN_STD  =np.load("../../data/SIM1/C_MEAN_STD_sim1000_A_var.npy")
-# G_STD_MEAN  =np.load("../../data/SIM1/G_STD_MEAN_sim1000_A_var.npy")
-# P_STD_MEAN  =np.load("../../data/SIM1/P_STD_MEAN_sim1000_A_var.npy")
-# N_STD_MEAN  =np.load("../../data/SIM1/N_STD_MEAN_sim1000_A_var.npy")
-# S_STD_MEAN  =np.load("../../data/SIM1/S_STD_MEAN_sim1000_A_var.npy")
-# X_STD_MEAN  =np.load("../../data/SIM1/X_STD_MEAN_sim1000_A_var.npy")
-# D_STD_MEAN  =np.load("../../data/SIM1/D_STD_MEAN_sim1000_A_var.npy")
-# T_STD_MEAN  =np.load("../../data/SIM1/T_STD_MEAN_sim1000_A_var.npy")
-# C_STD_MEAN  =np.load("../../data/SIM1/C_STD_MEAN_sim1000_A_var.npy")
-# G_STD_STD   =np.load("../../data/SIM1/G_STD_STD _sim1000_A_var.npy")
-# P_STD_STD   =np.load("../../data/SIM1/P_STD_STD _sim1000_A_var.npy")
-# N_STD_STD   =np.load("../../data/SIM1/N_STD_STD _sim1000_A_var.npy")
-# S_STD_STD   =np.load("../../data/SIM1/S_STD_STD _sim1000_A_var.npy")
-# X_STD_STD   =np.load("../../data/SIM1/X_STD_STD _sim1000_A_var.npy")
-# D_STD_STD   =np.load("../../data/SIM1/D_STD_STD _sim1000_A_var.npy")
-# T_STD_STD   =np.load("../../data/SIM1/T_STD_STD _sim1000_A_var.npy")
-# C_STD_STD   =np.load("../../data/SIM1/C_STD_STD _sim1000_A_var.npy")
+G_MEAN_MEAN =np.load("../../data/SIM1/G_MEAN_MEA_sim1000_A_var.npy")
+P_MEAN_MEAN =np.load("../../data/SIM1/P_MEAN_MEA_sim1000_A_var.npy")
+N_MEAN_MEAN =np.load("../../data/SIM1/N_MEAN_MEA_sim1000_A_var.npy")
+S_MEAN_MEAN =np.load("../../data/SIM1/S_MEAN_MEA_sim1000_A_var.npy")
+X_MEAN_MEAN =np.load("../../data/SIM1/X_MEAN_MEA_sim1000_A_var.npy")
+D_MEAN_MEAN =np.load("../../data/SIM1/D_MEAN_MEA_sim1000_A_var.npy")
+T_MEAN_MEAN =np.load("../../data/SIM1/T_MEAN_MEA_sim1000_A_var.npy")
+C_MEAN_MEAN =np.load("../../data/SIM1/C_MEAN_MEA_sim1000_A_var.npy")
+G_MEAN_STD  =np.load("../../data/SIM1/G_MEAN_STD_sim1000_A_var.npy")
+P_MEAN_STD  =np.load("../../data/SIM1/P_MEAN_STD_sim1000_A_var.npy")
+N_MEAN_STD  =np.load("../../data/SIM1/N_MEAN_STD_sim1000_A_var.npy")
+S_MEAN_STD  =np.load("../../data/SIM1/S_MEAN_STD_sim1000_A_var.npy")
+X_MEAN_STD  =np.load("../../data/SIM1/X_MEAN_STD_sim1000_A_var.npy")
+D_MEAN_STD  =np.load("../../data/SIM1/D_MEAN_STD_sim1000_A_var.npy")
+T_MEAN_STD  =np.load("../../data/SIM1/T_MEAN_STD_sim1000_A_var.npy")
+C_MEAN_STD  =np.load("../../data/SIM1/C_MEAN_STD_sim1000_A_var.npy")
+G_STD_MEAN  =np.load("../../data/SIM1/G_STD_MEAN_sim1000_A_var.npy")
+P_STD_MEAN  =np.load("../../data/SIM1/P_STD_MEAN_sim1000_A_var.npy")
+N_STD_MEAN  =np.load("../../data/SIM1/N_STD_MEAN_sim1000_A_var.npy")
+S_STD_MEAN  =np.load("../../data/SIM1/S_STD_MEAN_sim1000_A_var.npy")
+X_STD_MEAN  =np.load("../../data/SIM1/X_STD_MEAN_sim1000_A_var.npy")
+D_STD_MEAN  =np.load("../../data/SIM1/D_STD_MEAN_sim1000_A_var.npy")
+T_STD_MEAN  =np.load("../../data/SIM1/T_STD_MEAN_sim1000_A_var.npy")
+C_STD_MEAN  =np.load("../../data/SIM1/C_STD_MEAN_sim1000_A_var.npy")
+G_STD_STD   =np.load("../../data/SIM1/G_STD_STD _sim1000_A_var.npy")
+P_STD_STD   =np.load("../../data/SIM1/P_STD_STD _sim1000_A_var.npy")
+N_STD_STD   =np.load("../../data/SIM1/N_STD_STD _sim1000_A_var.npy")
+S_STD_STD   =np.load("../../data/SIM1/S_STD_STD _sim1000_A_var.npy")
+X_STD_STD   =np.load("../../data/SIM1/X_STD_STD _sim1000_A_var.npy")
+D_STD_STD   =np.load("../../data/SIM1/D_STD_STD _sim1000_A_var.npy")
+T_STD_STD   =np.load("../../data/SIM1/T_STD_STD _sim1000_A_var.npy")
+C_STD_STD   =np.load("../../data/SIM1/C_STD_STD _sim1000_A_var.npy")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 G_MEAN_MEAN = np.mean(G_MEAN, axis = 1)
@@ -442,4 +675,75 @@ plt.show()
 # D_STD_STD   =np.save("../../data/SIM2/D_STD_STD _sim1000_A_var_nobounds", D_STD_STD  )
 # T_STD_STD   =np.save("../../data/SIM2/T_STD_STD _sim1000_A_var_nobounds", T_STD_STD  )
 # C_STD_STD   =np.save("../../data/SIM2/C_STD_STD _sim1000_A_var_nobounds", C_STD_STD  )
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#----------------------CRASH ANALYSIS-----------------------------|
+@jit(nopython=True)
+def contiguous_regions(condition):
+    """Finds contiguous True regions of the boolean array "condition". Returns
+    a 2D array where the first column is the start index of the region and the
+    second column is the end index."""
+
+    # Find the indicies of changes in "condition"
+    d = np.diff(condition)
+    idx, = d.nonzero() 
+
+    # We need to start things after the change in "condition". Therefore, 
+    # we'll shift the index by 1 to the right.
+    idx += 1
+
+    if condition[0]:
+        idx_copy = np.zeros((idx.shape[0] + 1), dtype = np.int64)
+        idx_copy[1:] = idx
+        idx = idx_copy
+        # If the start of condition is True prepend a 0
+        ## idx = np.r_[0, idx]
+    if condition[-1]:
+        idx_copy = np.zeros((idx.shape[0] + 1), dtype = np.int64)
+        idx_copy[:-1] = idx
+        idx_copy[-1] = condition.size
+        idx = idx_copy
+
+    # Reshape the result into two columns
+    idx= np.reshape(idx,(-1,2))
+    return idx
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+@njit(parallel=True)
+def parallel_simulation_crashes(PAR_range, SIM, threshold):
+    crashes = np.zeros((len(PAR_range), SIM), dtype=np.float64)
+
+    for i in prange(len(PAR_range)):
+        PAR_VAL = PAR_range[i]
+        for j in prange(SIM):
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
+                    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+        
+            # CRASH DATA         
+            condition = X < threshold
+            crashes[i,j] = contiguous_regions(condition).shape[0]
+
+    return crashes
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+PAR_range = np.linspace(0.01,0.5,50)
+SIM = 1000
+threshold = -0.15
+
+crashes = parallel_simulation_crashes(PAR_range, SIM, threshold)
+crashes_mean = np.mean(crashes, axis=1)
+crashes_std = np.std(crashes, axis=1)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fig = plt.figure(figsize=(12, 8))
+# plt.errorbar(PAR_range, np.mean(crashes, axis=1), yerr=np.std(crashes, axis=1), color="C4")
+plt.plot(PAR_range, crashes_mean, c="r")
+plt.fill_between(x=PAR_range, y1 =crashes_mean+1.96*crashes_std/(np.sqrt(1000)), y2 = crashes_mean-1.96*crashes_std/(np.sqrt(1000)), alpha =0.4 )
+
+plt.grid(alpha=0.2)
+plt.ylabel("Crashes")
+plt.xlabel(r"$p_h$")
+plt.show()
 # %%
