@@ -5,13 +5,17 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import math
 import random
-from scipy import stats
+from scipy.optimize import curve_fit
 from numba import jit
+import math
+import itertools
+import operator
 
 import sys
 sys.path.append('../shared')
 from wednesdaySPEED import simulation
 from analytic_tools import gen_hurst_exponent
+from original_implementation import execute
 
 # %%
 
@@ -110,6 +114,74 @@ plt.ylabel(r"$q \cdot H(q)$")
 plt.xlabel(r"$q$")
 plt.legend()
 plt.savefig("imgs/img_hurst_exp_triple", dpi=300)
+plt.show()
+
+# %%
+
+## new model
+G_new, P, N, S, X, D, T, U, C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+    ph = 0.0485, pa = 0.7, N0=1000, N1 = 4000, A = 4, a=1, h=1, 
+    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+
+## old model 
+r, G_old = execute(0.1, 0.0001, 0.1, 2, 0.1, 0.1)
+
+# %%
+
+np.save("arrs/G_new_big_dist", G_new)
+np.save("arrs/G_old_big_dist", G_old)
+
+# %%
+
+def power_law(x, a, b):
+    return a * x ** (b)
+
+clusters_old = [[i for i,value in it] for key,it in itertools.groupby(enumerate(G_old[-1,:]), 
+                                                                  key=operator.itemgetter(1)) if key != 0]
+
+clusters_new = [[i for i,value in it] for key,it in itertools.groupby(enumerate(G_new.T[-1,:]), 
+                                                                  key=operator.itemgetter(1)) if key != 0]
+cluster_size_new, cluster_size_old = [], []
+
+for i in range(len(clusters_new)):
+    cluster_size_new.append(len(clusters_new[i]))
+
+for i in range(len(clusters_old)):
+    cluster_size_old.append(len(clusters_old[i]))
+
+unique_old, counts_old = np.unique(cluster_size_old, return_counts=True)
+unique_new, counts_new = np.unique(cluster_size_new, return_counts=True)
+
+popt_old, _ = curve_fit(power_law, unique_old, counts_old)
+popt_new, _ = curve_fit(power_law, unique_new, counts_new)
+
+
+# %%
+
+print(unique_old, counts_old)
+print(unique_new, counts_new)
+
+fig, ax = plt.subplots() 
+ax.scatter(unique_old, counts_old, color="C0", marker="v")
+ax.scatter(unique_new, counts_new, color="C1")
+
+power_law_old = popt_old[0]*unique_old**(popt_old[1])
+power_law_new = popt_new[0]*unique_new**(popt_new[1])
+
+ax.plot(unique_old, power_law_old, color='C0', label=f'Bartolozzi Automata', ls='--')
+ax.plot(unique_new, power_law_new, color='C1', label=f'Quasi-deterministic Automata', ls='--')
+
+# ax.plot(unique_old, power_law_old, color='C4', label=f'Bartolozzi lambda~{-1 * popt_old[1]:.2f}', ls='--')
+# ax.plot(unique_new, power_law_new, color='C7', label=f'lambda~{-1 * popt_new[1]:.2f}', ls='--')
+
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.set_xlabel('S')
+ax.set_ylabel(r'$\rho$')
+ax.grid(alpha=0.4, which="major")
+ax.grid(alpha=0.2, which="minor")
+ax.legend()
+plt.savefig("power_law_old_vs_new")
 plt.show()
 
 # %%
