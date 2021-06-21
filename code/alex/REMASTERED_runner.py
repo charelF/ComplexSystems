@@ -196,24 +196,132 @@ plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 @njit(parallel=True)
-def parallel_simulation_phase_transition(PAR_range, SIM, threshold):
-    crashes = np.zeros((len(PAR_range), SIM), dtype=np.float64)
-    S_arrays = np.zeros((len(PAR_range), SIM), dtype=np.float64)
-    for i in prange(len(PAR_range)):
-        PAR_VAL = PAR_range[i]
+def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, threshold, N0):
+    
+    crashes = np.zeros((len(PAR1_range), SIM), dtype=np.float64)
+    S_arrays = np.zeros((len(PAR1_range), SIM, N0), dtype=np.float64)
+
+    for i in prange(len(PAR1_range)):
+        PAR1_VAL = PAR1_range[i]
+        PAR2_VAL = PAR2_range[i]
+        PAR3_VAL = PAR3_range[i]
         for j in prange(SIM):
             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-                    ph = PAR_VAL, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
-                    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
-        
+                    ph = 0.0485, pa = 0.7, N0=N0, N1 = 100, A =4, a=1, h=1, 
+                    pi1 = PAR1_VAL, pi2 = PAR2_VAL, pi3 = PAR3_VAL)
             # CRASH DATA         
             condition = X < threshold
             crashes[i,j] = contiguous_regions(condition).shape[0]
             S_arrays[i,j] = S
 
-    return crashes, S
+    return (crashes, S_arrays)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+PAR1_range = np.linspace(0, 1 ,50)
+PAR2_range = (1-PAR1_range)*0.3
+PAR3_range = (1-PAR1_range)*0.2
+
+SIM = 1000
+threshold = 0.2
+N0 = 1000
+
+
+crashes, S_ARRAY = parallel_simulation_phase_transition(PAR1_range,PAR2_range,PAR3_range, SIM, threshold, N0)
+
+
+
+crashes_mean = np.mean(crashes, axis=1)
+crashes_std = np.std(crashes, axis=1)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tau = 9
+N = 100
+
+q_vals = np.linspace(-5, 5, 100)
+C_q = np.zeros(q_vals.shape[0] - 2) 
+X_q = np.zeros(q_vals.shape[0])
+S_q = np.zeros(q_vals.shape[0] - 1)
+mu_i = np.zeros(len(splt))
+lhs = np.zeros((q_vals.shape[0]))
+rhs = np.zeros((q_vals.shape[0]))
+
+
+
+C_q_collector = np.empty((len(PAR1_range), SIM, *C_q.shape))
+X_q_collector = np.empty((len(PAR1_range), SIM, *X_q.shape))
+S_q_collector = np.empty((len(PAR1_range), SIM, *S_q.shape))
+
+
+for i_par,par in enumerate(PAR1_range):
+    print(i_par)
+    for sim in range(SIM):
+        series = S_ARRAY[i_par, sim]
+        splt = np.array_split(series, N)
+        
+        ## structs
+        denom_sum = 0
+
+        ## eq 10
+        for i in range(len(splt)):
+            denom_sum += np.abs(splt[i][tau] - splt[i][0])
+
+        for j in range(len(splt)):
+            mu_i[j] = np.abs(splt[j][tau] - splt[j][0]) / denom_sum
+
+
+        for k, val in enumerate(q_vals):
+            ## eq 11
+            lhs[k] = np.log(np.sum(mu_i**val))
+            rhs[k] = np.log(N)
+            ## solve for slope of log-log
+            ## x_q equivelent to tau(q) in casenna
+            X_q[k] = lhs[k] / rhs[k]
+
+        # ## cannot obtain C_q for first and last q vals
+        for l in range(1, q_vals.shape[0] - 1):
+            C_q[l - 1] = X_q[l + 1] - 2 * X_q[l] + X_q[l - 1]
+            S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
+
+        C_q_collector[i_par, sim] = C_q
+        X_q_collector[i_par, sim] = X_q
+        S_q_collector[i_par, sim] = S_q
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+C_q_collector_no_nan = np.nan_to_num(C_q_collector, nan=0)
+C_q_mean = np.mean(C_q_collector_no_nan, axis=1)
+print(C_q_mean.shape)
+
+X_q_collector_no_nan = np.nan_to_num(X_q_collector, nan=0)
+X_q_mean = np.mean(X_q_collector_no_nan, axis=1)
+print(X_q_mean.shape)
+
+S_q_collector_no_nan = np.nan_to_num(S_q_collector, nan=0)
+S_q_mean = np.mean(S_q_collector_no_nan, axis=1)
+print(S_q_mean.shape)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plt.figure(figsize=(6, 4))
+plt.imshow(C_q_mean, aspect="auto", interpolation="None", vmin=0, vmax=0.01)
+plt.colorbar()
+plt.show()
+
+plt.figure(figsize=(6, 4))
+plt.imshow(S_q_mean, aspect="auto", interpolation="None")
+plt.colorbar()
+plt.show()
+
+plt.figure(figsize=(6, 4))
+plt.imshow(X_q_mean, aspect="auto", interpolation="None")
+plt.colorbar()
+plt.show()
+
+np.save("../../data/PHASE/C_q_mean", C_q_mean)
+np.save("../../data/PHASE/S_q_mean", S_q_mean)
+np.save("../../data/PHASE/X_q_mean", X_q_mean)
+np.save("../../data/PHASE/q_vals", q_vals)
+np.save("../../data/PHASE/S_ARRAY", S_ARRAY)
+
 
 
 
@@ -610,7 +718,7 @@ def parallel_simulation_crashes(PAR_range, SIM, threshold):
         PAR_VAL = PAR_range[i]
         for j in prange(SIM):
             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-                    ph = PAR_VAL, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
+                    ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
                     pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
         
             # CRASH DATA         
@@ -627,6 +735,7 @@ threshold = -0.15
 crashes = parallel_simulation_crashes(PAR_range, SIM, threshold)
 crashes_mean = np.mean(crashes, axis=1)
 crashes_std = np.std(crashes, axis=1)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fig = plt.figure(figsize=(12, 8))
 # plt.errorbar(PAR_range, np.mean(crashes, axis=1), yerr=np.std(crashes, axis=1), color="C4")
