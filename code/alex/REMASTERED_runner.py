@@ -119,17 +119,19 @@ G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound =
 visualiseNICE(G,P,N,S,X,D,T,U,C)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
-        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
+G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+        ph = 0.0485, pa = 0.7, N0=1000, N1 = 1000, A =0, a=1, h=1, 
         pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
 
 visualiseNICE(G,P,N,S,X,D,T,U,C)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#---------------PHASE TRANSITION-------------------#
+# series = np.load("../../data/ENTROPYPLOT/E1_S_timeseries.npy")
 tau = 9
 N = 100
 series = S
 splt = np.array_split(series, N)
-q_vals = np.linspace(-8, 8, 1000)
+q_vals = np.linspace(-50, 50, 1000)
 
 ## structs
 C_q = np.zeros(q_vals.shape[0] - 2) 
@@ -162,11 +164,60 @@ for l in range(1, q_vals.shape[0] - 1):
     S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
 
 
-plt.plot(q_vals[2:], S_q[:-1])
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plt.figure(figsize=(10,5))
+plt.plot(q_vals/40, X_q/np.max(X_q), c="r", label="Free Energy - H")
+plt.plot(q_vals[2:]/40, -S_q[:-1]/np.max(-S_q), c="b", label="Entropy - dH/dT")
+plt.plot(q_vals[2:]/40,C_q/np.max(C_q), c="g", label="Specific heat- dH^2/dT^2")
+plt.ylabel("")
+plt.xlabel("Temperature")
+plt.legend()
 plt.show()
 
-plt.plot(q_vals[2:],C_q/np.max(C_q))
+
+plt.figure(figsize=(10,5))
+plt.plot(q_vals, X_q)
+plt.ylabel("H - Free Energy")
+plt.xlabel("Temperature")
 plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(q_vals[2:], -S_q[:-1])
+plt.ylabel("S - Entropy")
+plt.xlabel("Temperature")
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(q_vals[2:],C_q)
+plt.ylabel("C_p - Specific heat")
+plt.xlabel("Temperature")
+plt.show()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@njit(parallel=True)
+def parallel_simulation_phase_transition(PAR_range, SIM, threshold):
+    crashes = np.zeros((len(PAR_range), SIM), dtype=np.float64)
+    S_arrays = np.zeros((len(PAR_range), SIM), dtype=np.float64)
+    for i in prange(len(PAR_range)):
+        PAR_VAL = PAR_range[i]
+        for j in prange(SIM):
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+                    ph = PAR_VAL, pa = 0.7, N0=1000, N1 = 100, A =4, a=1, h=1, 
+                    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+        
+            # CRASH DATA         
+            condition = X < threshold
+            crashes[i,j] = contiguous_regions(condition).shape[0]
+            S_arrays[i,j] = S
+
+    return crashes, S
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
