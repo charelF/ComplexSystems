@@ -22,6 +22,12 @@ import sys
 sys.path.append("../shared")
 from analytic_tools import *
 
+import sys
+sys.path.append("..")
+sys.path.append("../shared")
+
+from wednesdaySPEED import simulation
+
 #%%
 
 def cluster_info(arr):
@@ -397,6 +403,12 @@ def execute():
 
     return G, S, 
 # visualiseFAST(G,P,N,S,X,D) 
+ 
+ # %%
+
+ G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
+        pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
 
 # %%
 
