@@ -6,6 +6,7 @@ import pandas as pd
 import math
 import random
 from scipy.optimize import curve_fit
+import scipy.stats as stats
 from numba import jit
 import math
 import itertools
@@ -186,9 +187,9 @@ plt.show()
 
 ## return distribution 
 
-df = pds.read_csv("../../data/all_world_indices_clean.csv")
+df = pd.read_csv("../../data/all_world_indices_clean.csv")
 df_spx = df[["Date", "SPX Index"]]
-df_spx["Date"] = pds.to_datetime(df_spx["Date"], format='%d/%m/%Y')
+df_spx["Date"] = pd.to_datetime(df_spx["Date"], format='%d/%m/%Y')
 df_spx = df_spx.sort_values(by="Date")
 df_spx.reset_index(inplace=True)
 series_array = np.array(df_spx["SPX Index"])
@@ -196,21 +197,25 @@ log_ret_dat = np.diff(np.log(series_array))
 log_ret_dat_stan = (log_ret_dat - np.mean(log_ret_dat)) / np.std(log_ret_dat)
 
 G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
-        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
-        pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+        ph = 0.0485, pa = 0.7, N0=4000, N1 = 100, A = 4, a=1, h=1, 
+        pi1 = 0.3, pi2 = 0.5, pi3 = 0.2)
 r = (X - np.mean(X)) / np.std(X)
 
 #%%
 
-fig = plt.figure(figsize=(8, 8))
-plt.hist(r, alpha=0.4, bins=30, label="CA", density=True)
-plt.hist(log_ret_dat_stan, bins=30, alpha=0.4, label="S&P500", density=True)
+plt.hist(r, alpha=0.4, bins=30, label="Automaton", density=True)
+plt.hist(log_ret_dat_stan, bins=30, alpha=0.4, label="S&P 500", density=True)
 plt.yscale("log")
-plt.title("Log Return Distribution - Standardised")
+##plt.title("Log Return Distribution - Standardised")
 plt.legend()
 plt.grid(alpha=0.2)
+plt.ylabel(r"$\rho$")
+plt.xlabel(r"$r$")
+plt.savefig("imgs/standardised_dist_plot", dpi=300)
 plt.show()
 
 ## 2 independent samples KS test
 ksstat, pval = stats.ks_2samp(r, log_ret_dat_stan)
 print(ksstat, pval)
+
+# %%
