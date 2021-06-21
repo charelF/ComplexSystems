@@ -10,6 +10,57 @@ sys.path.append('../shared')
 
 from wednesdaySPEED import *
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#----------------------CRASH ANALYSIS-----------------------------|
+@jit(nopython=True)
+def contiguous_regions(condition):
+    """Finds contiguous True regions of the boolean array "condition". Returns
+    a 2D array where the first column is the start index of the region and the
+    second column is the end index."""
+
+    # Find the indicies of changes in "condition"
+    d = np.diff(condition)
+    idx, = d.nonzero() 
+
+    # We need to start things after the change in "condition". Therefore, 
+    # we'll shift the index by 1 to the right.
+    idx += 1
+
+    if condition[0]:
+        idx_copy = np.zeros((idx.shape[0] + 1), dtype = np.int64)
+        idx_copy[1:] = idx
+        idx = idx_copy
+        # If the start of condition is True prepend a 0
+        ## idx = np.r_[0, idx]
+    if condition[-1]:
+        idx_copy = np.zeros((idx.shape[0] + 1), dtype = np.int64)
+        idx_copy[:-1] = idx
+        idx_copy[-1] = condition.size
+        idx = idx_copy
+
+    # Reshape the result into two columns
+    idx= np.reshape(idx,(-1,2))
+    return idx
+
+@jit(nopython=True)
+def count_crashes(X, treshold, window=5):
+    """
+    does it better than james
+    - X: log returns array, in range -1, 1
+    - treshold: the log return that defines a crash: 
+        - e.g. if 20% drop over 5 days = crash then the treshold should be 0.8
+    - window: how many days: default: 5 days
+    """
+
+    crashes = 0
+    for i in range(len(X)-window):
+        period = Xp1[i:i+window]+1
+        prod = np.prod(period)
+        geo_mean = prod ** (1/window)
+        if geo_mean < treshold:
+            crashes += 1
+
+    return crashes
+
 def moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
 
@@ -112,13 +163,6 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
     plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
-        ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A =0, a=1, h=1, 
-        pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
-
-visualiseNICE(G,P,N,S,X,D,T,U,C)
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
         ph = 0.0485, pa = 0.7, N0=1000, N1 = 1000, A =0, a=1, h=1, 
         pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
@@ -126,12 +170,12 @@ G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound =
 visualiseNICE(G,P,N,S,X,D,T,U,C)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #---------------PHASE TRANSITION-------------------#
-# series = np.load("../../data/ENTROPYPLOT/E1_S_timeseries.npy")
+series = np.load("../../data/ENTROPYPLOT/E1_S_timeseries.npy")
 tau = 9
 N = 100
-series = S
+# series = S
 splt = np.array_split(series, N)
-q_vals = np.linspace(-50, 50, 1000)
+q_vals = np.linspace(-4, 4, 100)
 
 ## structs
 C_q = np.zeros(q_vals.shape[0] - 2) 
@@ -167,7 +211,7 @@ for l in range(1, q_vals.shape[0] - 1):
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 plt.figure(figsize=(10,5))
 plt.plot(q_vals/40, X_q/np.max(X_q), c="r", label="Free Energy - H")
-plt.plot(q_vals[2:]/40, -S_q[:-1]/np.max(-S_q), c="b", label="Entropy - dH/dT")
+plt.plot(q_vals[2:]/40, S_q[:-1]/np.max(-S_q), c="b", label="Entropy - dH/dT")
 plt.plot(q_vals[2:]/40,C_q/np.max(C_q), c="g", label="Specific heat- dH^2/dT^2")
 plt.ylabel("")
 plt.xlabel("Temperature")
@@ -182,7 +226,7 @@ plt.xlabel("Temperature")
 plt.show()
 
 plt.figure(figsize=(10,5))
-plt.plot(q_vals[2:], -S_q[:-1])
+plt.plot(q_vals[2:], S_q[:-1])
 plt.ylabel("S - Entropy")
 plt.xlabel("Temperature")
 plt.show()
@@ -206,7 +250,7 @@ def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, 
         PAR2_VAL = PAR2_range[i]
         PAR3_VAL = PAR3_range[i]
         for j in prange(SIM):
-            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
                     ph = 0.0485, pa = 0.7, N0=N0, N1 = 100, A =4, a=1, h=1, 
                     pi1 = PAR1_VAL, pi2 = PAR2_VAL, pi3 = PAR3_VAL)
             # CRASH DATA         
@@ -222,14 +266,11 @@ PAR1_range = np.linspace(0, 1 ,50)
 PAR2_range = (1-PAR1_range)*0.3
 PAR3_range = (1-PAR1_range)*0.2
 
-SIM = 1000
+SIM = 100
 threshold = 0.2
 N0 = 1000
 
-
 crashes, S_ARRAY = parallel_simulation_phase_transition(PAR1_range,PAR2_range,PAR3_range, SIM, threshold, N0)
-
-
 
 crashes_mean = np.mean(crashes, axis=1)
 crashes_std = np.std(crashes, axis=1)
@@ -238,7 +279,7 @@ crashes_std = np.std(crashes, axis=1)
 tau = 9
 N = 100
 
-q_vals = np.linspace(-5, 5, 100)
+q_vals = np.linspace(-5, 5, 1000)
 C_q = np.zeros(q_vals.shape[0] - 2) 
 X_q = np.zeros(q_vals.shape[0])
 S_q = np.zeros(q_vals.shape[0] - 1)
@@ -316,18 +357,86 @@ plt.imshow(X_q_mean, aspect="auto", interpolation="None")
 plt.colorbar()
 plt.show()
 
-np.save("../../data/PHASE/C_q_mean", C_q_mean)
-np.save("../../data/PHASE/S_q_mean", S_q_mean)
-np.save("../../data/PHASE/X_q_mean", X_q_mean)
-np.save("../../data/PHASE/q_vals", q_vals)
-np.save("../../data/PHASE/S_ARRAY", S_ARRAY)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+import numpy as np
+
+import scipy
+from scipy import special, spatial, sparse
+import scipy.sparse.linalg
+
+import matplotlib.pyplot as plt
+from matplotlib import animation, rc, ticker
+from mpl_toolkits.mplot3d import Axes3D
+rc('animation', html='jshtml')
+
+from IPython.display import clear_output, HTML
+
+import math
+import random
+import time
+
+from numba import jit, njit, prange
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+par_range = np.linspace(0, 1, 50)
+q_vals = np.linspace(-5, 5, 100)[1:-1]
+
+print(q_vals.shape, par_range.shape)
+print(C_q_mean.shape)
+
+xx, yy = np.meshgrid(q_vals, par_range)
 
 
+fig = plt.figure(figsize=(12,10))
+ax = plt.axes(projection='3d')
+idk = ax.plot_surface(
+    xx, yy, np.exp(C_q_mean), cmap="hsv", rstride=2, cstride=2, 
+    shade=False, linewidth=0.05, antialiased=True, edgecolor="black", 
+    label="String", vmin=1, vmax=1.07)
+# idk._edgecolors2d=idk._edgecolors3d  # fixes some weird bug when using ax.legend()
+# idk._facecolors2d=idk._facecolors3d
+# ax.plot_wireframe(xx, yy, m, cmap = 'coolwarm',  lw=1, rstride=1, cstride=1)
+# ax.set_title('')
+ax.set_xlabel('q_vals')
+ax.set_ylabel('par_range')
+ax.set_zlabel('Cq')
+ax.view_init(25, 260)
+# ax.legend()
+# idk.set_clim(-1,1)
+# fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
+plt.tight_layout()
+# fig.legend()
+# plt.savefig("img/E", dpi=300)
+plt.show()
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+par_range = np.linspace(0, 1, 50)
+q_vals = np.linspace(-5, 5, 100)[1:]
+print(q_vals.shape, par_range.shape)
+print(C_q_mean.shape)
+
+xx, yy = np.meshgrid(q_vals, par_range)
 
 
-
-
-
+fig = plt.figure(figsize=(12,10))
+ax = plt.axes(projection='3d')
+idk = ax.plot_surface(
+    xx, yy, np.exp(S_q_mean), cmap="hsv", rstride=2, cstride=2, 
+    shade=False, linewidth=0.05, antialiased=True, edgecolor="black", 
+    label="String", vmin=0, vmax=1.07)
+# idk._edgecolors2d=idk._edgecolors3d  # fixes some weird bug when using ax.legend()
+# idk._facecolors2d=idk._facecolors3d
+# ax.plot_wireframe(xx, yy, m, cmap = 'coolwarm',  lw=1, rstride=1, cstride=1)
+# ax.set_title('')
+ax.set_xlabel('q_vals')
+ax.set_ylabel('par_range')
+ax.set_zlabel('Cq')
+ax.view_init(25, 245)
+# ax.legend()
+# idk.set_clim(-1,1)
+# fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
+plt.tight_layout()
+# fig.legend()
+# plt.savefig("img/E", dpi=300)
+plt.show()
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 lags = np.arange(10,100,10)
 # lags = [1] 
@@ -676,37 +785,6 @@ plt.show()
 # T_STD_STD   =np.save("../../data/SIM2/T_STD_STD _sim1000_A_var_nobounds", T_STD_STD  )
 # C_STD_STD   =np.save("../../data/SIM2/C_STD_STD _sim1000_A_var_nobounds", C_STD_STD  )
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#----------------------CRASH ANALYSIS-----------------------------|
-@jit(nopython=True)
-def contiguous_regions(condition):
-    """Finds contiguous True regions of the boolean array "condition". Returns
-    a 2D array where the first column is the start index of the region and the
-    second column is the end index."""
-
-    # Find the indicies of changes in "condition"
-    d = np.diff(condition)
-    idx, = d.nonzero() 
-
-    # We need to start things after the change in "condition". Therefore, 
-    # we'll shift the index by 1 to the right.
-    idx += 1
-
-    if condition[0]:
-        idx_copy = np.zeros((idx.shape[0] + 1), dtype = np.int64)
-        idx_copy[1:] = idx
-        idx = idx_copy
-        # If the start of condition is True prepend a 0
-        ## idx = np.r_[0, idx]
-    if condition[-1]:
-        idx_copy = np.zeros((idx.shape[0] + 1), dtype = np.int64)
-        idx_copy[:-1] = idx
-        idx_copy[-1] = condition.size
-        idx = idx_copy
-
-    # Reshape the result into two columns
-    idx= np.reshape(idx,(-1,2))
-    return idx
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
