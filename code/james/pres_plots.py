@@ -101,8 +101,6 @@ ax3.legend()
 plt.savefig("imgs/img_hurst_exp_triple", dpi=300)
 # %%
 
-fig = plt.figure(figsize=(12, 8))
-
 plt.plot(q_vals, res_mean_ca, 'v-', label='Rule-Based CA')
 plt.fill_between(q_vals, res_mean_ca + res_std_ca, res_mean_ca - res_std_ca, alpha=0.1)
 plt.plot(q_vals, res_mean_sp, 'x-', label='S&P500')
@@ -178,10 +176,10 @@ ax.set_yscale('log')
 ax.set_xscale('log')
 ax.set_xlabel('S')
 ax.set_ylabel(r'$\rho$')
-ax.grid(alpha=0.4, which="major")
-ax.grid(alpha=0.2, which="minor")
+ax.grid(alpha=0.2, which="major")
+ax.grid(alpha=0.05, which="minor")
 ax.legend()
-plt.savefig("power_law_old_vs_new")
+plt.savefig("imgs/power_law_old_vs_new")
 plt.show()
 
 # %%
