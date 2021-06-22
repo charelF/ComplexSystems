@@ -6,7 +6,9 @@ A cellular automata
 
 Yielding interesting phenomena
 
-![lol](img/3DVideo/C_4.gif)
+![rotating temperature](img/3DVideo/C_4.gif)
+
+![entropy](img/3DVideo/S_1.gif)
 
 
 
