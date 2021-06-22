@@ -2,7 +2,10 @@
 
 A cellular automata
 
-![complex](img/CA_large.png)
+
+| Small | Large |
+|------------|------------|
+| ![complex](img/CA_small.png) | !![complex](img/CA_large.png)) |
 
 Yielding interesting phenomena
 
