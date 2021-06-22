@@ -1,8 +1,10 @@
 # ComplexSystems
 
+![lol](img/3DVideo/C_.gif)
+
 ![complex](img/tmp.png)
 
-![lol](img/3DVideo/C_.gif)
+
 
 
 
