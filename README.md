@@ -5,7 +5,7 @@ A cellular automata
 
 | Small | Large |
 |------------|------------|
-| ![complex](img/CA_small.png) | !![complex](img/CA_large.png)) |
+| ![complex](img/CA_small.png) | ![complex](img/CA_large.png) |
 
 Yielding interesting phenomena
 
