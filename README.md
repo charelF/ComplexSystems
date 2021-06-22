@@ -6,9 +6,9 @@ A cellular automata
 
 Yielding interesting phenomena
 
-![rotating temperature](img/3DVideo/C_4.gif)
-
-![entropy](img/3DVideo/S_1.gif)
+| Heat Capacity | Entropy |
+|------------|------------|
+| ![rotating temperature](img/3DVideo/C_4.gif) | ![entropy](img/3DVideo/S_1.gif) |
 
 
 
