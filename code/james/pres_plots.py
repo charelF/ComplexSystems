@@ -7,7 +7,7 @@ import math
 import random
 from scipy.optimize import curve_fit
 import scipy.stats as stats
-from numba import jit
+from numba import njit, prange
 import math
 import itertools
 import operator
@@ -15,7 +15,7 @@ import operator
 import sys
 sys.path.append('../shared')
 from wednesdaySPEED import simulation
-from analytic_tools import gen_hurst_exponent
+from analytic_tools import gen_hurst_exponent, count_crashes
 from original_implementation import execute
 
 # %%
@@ -213,9 +213,65 @@ plt.ylabel(r"$\rho$")
 plt.xlabel(r"$r$")
 plt.savefig("imgs/standardised_dist_plot", dpi=300)
 plt.show()
-
+    
 ## 2 independent samples KS test
 ksstat, pval = stats.ks_2samp(r, log_ret_dat_stan)
 print(ksstat, pval)
 
 # %%
+
+N_range = [10, 50, 250]
+A_range = np.linspace(0.2, 10, 50)
+sims = 150
+
+NA_res = np.zeros((sims, len(N_range), A_range.shape[0]))
+
+for j, N_val in enumerate(N_range):
+    for i, A_val in enumerate(A_range):
+
+        for k in range(sims):
+            print(N_val, A_val, k)
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=1000, N1 = N_val, A = A_val, a=1, h=1, 
+                    pi1 = 0.8, pi2 = 0.2, pi3 = 0)
+
+            NA_res[k, j, i] = count_crashes(X, 0.65, window=5) 
+
+# %%
+
+np.save("arrs/crashes_A_N", NA_res)
+# %%
+
+NA_res = np.load("crashes_A_N.npy")
+mn = np.mean(NA_res, axis=0)
+sd = 1.96 * np.std(NA_res, axis=0) / np.sqrt(sims)
+
+fig = plt.figure(figsize=(8, 6))
+for z in range(mn.shape[0]):
+    plt.plot(A_range, mn[z,:], label=f"Agents = {N_range[z]}")
+    plt.fill_between(A_range, mn[z,:] - sd[z,:], mn[z,:] + sd[z,:], alpha = 0.2)
+plt.legend(loc=2)
+plt.ylabel("Number of Crashes")
+plt.xlabel("A")
+plt.grid(alpha=0.2)
+plt.savefig("imgs/crash_simulation_A_N_2", dpi = 300)
+plt.xlim(2.5, 10)
+plt.show()
+
+
+# %%
+# pi2_range = [0, 0.25, 5]
+# A_range = np.linspace(1, 10, 50)
+# sims = 50
+
+# NA_res = np.zeros((sims, len(N_range), A_range.shape[0]))
+
+# for j, pi2_val in enumerate(pi2_range):
+#     for i, A_val in enumerate(A_range):
+
+#         for k in range(sims):
+#             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+#                     ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = A_val, a=1, h=1, 
+#                     pi1 = 0.6, pi2 = 0.2, pi3 = 0.2)
+
+#             NA_res[k, j, i] = count_crashes(X, 0.65, window=2) 

@@ -1,5 +1,6 @@
 import numpy as np 
 import pandas as pd
+from numba import njit, prange, jit
 
 def gen_hurst_exponent(time_series, num_q, max_lag=200):
     """Returns the Hurst Exponent of the time series"""
@@ -87,3 +88,23 @@ def fractal_latent_heat_alex(series, tau, N):
         S_q[l - 1] = X_q[l + 1] - X_q[l - 1]
 
     return q_vals, C_q, S_q, X_q
+
+@jit(nopython=True)
+def count_crashes(X, treshold, window=5):
+    """
+    does it better than james
+    - X: log returns array, in range -1, 1
+    - treshold: the log return that defines a crash: 
+        - e.g. if 20% drop over 5 days = crash then the treshold should be 0.8
+    - window: how many days: default: 5 days
+    """
+
+    crashes = 0
+    for i in range(len(X)-window):
+        period = X[i:i+window]+1
+        prod = np.prod(period)
+        geo_mean = prod ** (1/window)
+        if geo_mean < treshold:
+            crashes += 1
+
+    return crashes
