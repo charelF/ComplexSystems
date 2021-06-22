@@ -8,6 +8,7 @@ import random
 from scipy.optimize import curve_fit
 import scipy.stats as stats
 from numba import njit, prange
+import statsmodels.api as sm
 import math
 import itertools
 import operator
@@ -260,18 +261,75 @@ plt.show()
 
 
 # %%
-# pi2_range = [0, 0.25, 5]
-# A_range = np.linspace(1, 10, 50)
-# sims = 50
 
-# NA_res = np.zeros((sims, len(N_range), A_range.shape[0]))
+df = pd.read_csv("../../data/all_world_indices_clean.csv")
+df_spx = df[["Date", "SPX Index"]]
+df_spx["Date"] = pd.to_datetime(df_spx["Date"], format='%d/%m/%Y')
+df_spx = df_spx.sort_values(by="Date")
+df_spx.reset_index(inplace=True)
+series_array = np.array(df_spx["SPX Index"])
+log_ret_dat = np.diff(np.log(series_array))
+log_ret_dat_stan = (log_ret_dat - np.mean(log_ret_dat)) / np.std(log_ret_dat)
 
-# for j, pi2_val in enumerate(pi2_range):
-#     for i, A_val in enumerate(A_range):
+G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+        ph = 0.0485, pa = 0.7, N0=4000, N1 = 100, A = 4, a=1, h=1, 
+        pi1 = 0.3, pi2 = 0.5, pi3 = 0.2)
+r = (X - np.mean(X)) / np.std(X)
 
-#         for k in range(sims):
-#             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-#                     ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = A_val, a=1, h=1, 
-#                     pi1 = 0.6, pi2 = 0.2, pi3 = 0.2)
+# %%
 
-#             NA_res[k, j, i] = count_crashes(X, 0.65, window=2) 
+## x and y data
+acf_x = sm.tsa.stattools.acf(r)[1:]
+acf_sp = sm.tsa.stattools.acf(log_ret_dat_stan[1:])[1:]
+
+acf_x_vol = sm.tsa.stattools.acf(np.abs(r))[1:]
+acf_sp_vol = sm.tsa.stattools.acf(np.abs(log_ret_dat_stan[1:]))[1:]
+
+x = np.arange(acf_x.shape[0])
+
+## mean above which the acf is significantly different from 
+## zero at the 95% level. 2.021 is the critical value 
+threshold = 2.021 * np.std(acf_x)
+
+fig = plt.figure(figsize=(15, 5))
+plt.plot(x, acf_x, label="S&P500 Returns")
+plt.plot(x, acf_sp, label="Automaton Returns")
+plt.plot(x, [threshold]*acf_x.shape[0], "--", color="C2", alpha=0.4)
+plt.plot(x, [-1 * threshold]*acf_x.shape[0], "--", color="C2", alpha=0.4)
+plt.xlabel("Lag")
+plt.ylabel("Autocorrelations")
+plt.grid(alpha=0.2)
+plt.legend()
+plt.savefig("imgs/acf_ret")
+plt.show()
+# %%
+
+fig, (ax1, ax2) = plt.subplots(
+        ncols=1, nrows=2, figsize=(12,7), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0.15})
+        
+ax1.plot(x, acf_x, label="S&P500 Returns")
+ax1.plot(x, acf_sp, label="Automaton Returns")
+ax1.plot(x, [threshold]*acf_x.shape[0], "--", color="black", alpha=0.5, label="Significance Threshold")
+ax1.plot(x, [-1 * threshold]*acf_x.shape[0], "--", color="black", alpha=0.5)
+ax1.fill_between(x, [threshold]*acf_x.shape[0], [-1 * threshold]*acf_x.shape[0], color="black", alpha=0.05) 
+ax1.grid(alpha=0.2)
+ax1.set_ylabel(r"Autocorrelation")
+ax1.legend() 
+
+ax2.plot(x, acf_x_vol, color="C0", label="S&P500 Volatility")
+ax2.plot(x, acf_sp_vol, color="C1", label="Automaton Volatility")
+ax2.plot(x, [threshold]*acf_x.shape[0], "--", color="black", alpha=0.5, label="Significance Threshold")
+ax2.fill_between(x, [threshold]*acf_x.shape[0], [threshold - 0.04]*acf_x.shape[0], color="black", alpha=0.05) 
+##ax2.plot(x, [-1 * threshold]*acf_x.shape[0], "--", color="C2", alpha=0.4)
+ax2.grid(alpha=0.2)
+ax2.set_ylabel(r"Autocorrelation")
+ax2.legend() 
+
+fig.align_ylabels()
+plt.xlabel("Lag")
+plt.savefig("acf_double_plot", dpi=300)
+##plt.xlim(200, 500)
+plt.show()
+
+
+# %%
