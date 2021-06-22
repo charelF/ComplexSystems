@@ -1,10 +1,12 @@
 # ComplexSystems
 
-![lol](img/3DVideo/C_.gif)
+A cellular automata
 
-![complex](img/tmp.png)
+![complex](img/CA_large.png)
 
+Yielding interesting phenomena
 
+![lol](img/3DVideo/C_4.gif)
 
 
 
