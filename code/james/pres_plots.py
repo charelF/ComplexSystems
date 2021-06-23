@@ -225,18 +225,18 @@ N_range = [10, 50, 250]
 A_range = np.linspace(0.2, 10, 50)
 sims = 150
 
-NA_res = np.zeros((sims, len(N_range), A_range.shape[0]))
+# NA_res = np.zeros((sims, len(N_range), A_range.shape[0]))
 
-for j, N_val in enumerate(N_range):
-    for i, A_val in enumerate(A_range):
+# for j, N_val in enumerate(N_range):
+#     for i, A_val in enumerate(A_range):
 
-        for k in range(sims):
-            print(N_val, A_val, k)
-            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-                    ph = 0.0485, pa = 0.7, N0=1000, N1 = N_val, A = A_val, a=1, h=1, 
-                    pi1 = 0.8, pi2 = 0.2, pi3 = 0)
+#         for k in range(sims):
+#             print(N_val, A_val, k)
+#             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
+#                     ph = 0.0485, pa = 0.7, N0=1000, N1 = N_val, A = A_val, a=1, h=1, 
+#                     pi1 = 0.8, pi2 = 0.2, pi3 = 0)
 
-            NA_res[k, j, i] = count_crashes(X, 0.65, window=5) 
+#             NA_res[k, j, i] = count_crashes(X, 0.65, window=5) 
 
 # %%
 
@@ -247,9 +247,8 @@ NA_res = np.load("crashes_A_N.npy")
 mn = np.mean(NA_res, axis=0)
 sd = 1.96 * np.std(NA_res, axis=0) / np.sqrt(sims)
 
-fig = plt.figure(figsize=(8, 6))
 for z in range(mn.shape[0]):
-    plt.plot(A_range, mn[z,:], label=f"Agents = {N_range[z]}")
+    plt.plot(A_range, mn[z,:], label=f"Traders = {N_range[z]}")
     plt.fill_between(A_range, mn[z,:] - sd[z,:], mn[z,:] + sd[z,:], alpha = 0.2)
 plt.legend(loc=2)
 plt.ylabel("Number of Crashes")
@@ -327,9 +326,50 @@ ax2.legend()
 
 fig.align_ylabels()
 plt.xlabel("Lag")
-plt.savefig("acf_double_plot", dpi=300)
+plt.savefig("imgs/acf_double_plot", dpi=300)
 ##plt.xlim(200, 500)
 plt.show()
 
+# %%
+
+N_range = [10, 50, 250]
+pi1_range = np.linspace(0.9, 0, 30)
+sims = 20
+
+Npi_res = np.zeros((sims, len(N_range), pi1_range.shape[0]))
+
+for j, N_val in enumerate(N_range):
+    for i, pi1_val in enumerate(pi1_range):
+
+        for k in range(sims):
+            print(N_val, pi1_val, k)
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=1500, N1 = N_val, A = 4.5, a=1, h=1, 
+                    pi1 = pi1_val, pi2 = 0.9 - pi1_val, pi3 = 0.1)
+
+            Npi_res[k, j, i] = count_crashes(X, 0.9, window=5) 
+
+# %%
+
+np.save("arrs/crashes_pi1_N", Npi_res)
+# %%
+
+##NA_res = np.load("crashes_A_N.npy")
+mn = np.mean(Npi_res, axis=0)
+sd = 1.96 * np.std(Npi_res, axis=0) / np.sqrt(sims)
+
+print(mn)
+print(sd)
+
+for z in range(mn.shape[0]):
+    plt.plot(pi1_range, mn[z,:], label=f"Traders = {N_range[z]}")
+    plt.fill_between(pi1_range, mn[z,:] - sd[z,:], mn[z,:] + sd[z,:], alpha = 0.2)
+plt.legend(loc=2)
+plt.ylabel("Number of Crashes")
+plt.xlabel("Stochastic Trader Ratio")
+plt.grid(alpha=0.2)
+plt.xlim(0.4, 0.9)
+plt.savefig("imgs/crash_simulation_pi1_N", dpi = 300)
+plt.show()
 
 # %%

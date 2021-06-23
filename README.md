@@ -1,10 +1,17 @@
 # ComplexSystems
 
-![lol](img/3DVideo/C_.gif)
-
-![complex](img/tmp.png)
+A cellular automata
 
 
+| Small | Large |
+|------------|------------|
+| ![complex](img/CA_small.png) | ![complex](img/CA_large.png) |
+
+Yielding interesting phenomena
+
+| Heat Capacity | Entropy |
+|------------|------------|
+| ![rotating temperature](img/3DVideo/C_4.gif) | ![entropy](img/3DVideo/S_1.gif) |
 
 
 

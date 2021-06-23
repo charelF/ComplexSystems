@@ -5,6 +5,25 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from numba import njit, prange
 
+
+import scipy
+from scipy import special, spatial, sparse
+import scipy.sparse.linalg
+
+import matplotlib.pyplot as plt
+from matplotlib import animation, rc, ticker
+from mpl_toolkits.mplot3d import Axes3D
+rc('animation', html='jshtml')
+
+from IPython.display import clear_output, HTML
+
+import math
+import random
+import time
+
+from numba import jit, njit, prange
+
+
 import sys
 sys.path.append('../shared')
 
@@ -53,7 +72,7 @@ def count_crashes(X, treshold, window=5):
 
     crashes = 0
     for i in range(len(X)-window):
-        period = Xp1[i:i+window]+1
+        period = X[i:i+window]+1
         prod = np.prod(period)
         geo_mean = prod ** (1/window)
         if geo_mean < treshold:
@@ -240,7 +259,7 @@ plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 @njit(parallel=True)
-def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, threshold, N0):
+def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, treshold, N0):
     
     crashes = np.zeros((len(PAR1_range), SIM), dtype=np.float64)
     S_arrays = np.zeros((len(PAR1_range), SIM, N0), dtype=np.float64)
@@ -250,43 +269,69 @@ def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, 
         PAR2_VAL = PAR2_range[i]
         PAR3_VAL = PAR3_range[i]
         for j in prange(SIM):
-            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
                     ph = 0.0485, pa = 0.7, N0=N0, N1 = 100, A =4, a=1, h=1, 
                     pi1 = PAR1_VAL, pi2 = PAR2_VAL, pi3 = PAR3_VAL)
             # CRASH DATA         
-            condition = X < threshold
-            crashes[i,j] = contiguous_regions(condition).shape[0]
+
+            
+            
+            crashes[i,j] = count_crashes(X, treshold, window=5)
+            S_arrays[i,j] = S
+
+    return (crashes, S_arrays)
+
+
+@njit(parallel=True)
+def parallel_simulation_phase_transition2(A_range, SIM, treshold, N0):
+    
+    crashes = np.zeros((len(A_range), SIM), dtype=np.float64)
+    S_arrays = np.zeros((len(A_range), SIM, N0), dtype=np.float64)
+
+    for i in prange(len(A_range)):
+        A_val = A_range[i]
+        for j in prange(SIM):
+            G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
+                    ph = 0.0485, pa = 0.7, N0=N0, N1 = 100, A =A_val, a=1, h=1, 
+                    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
+            # CRASH DATA         
+
+            
+            
+            crashes[i,j] = count_crashes(X, treshold, window=5)
             S_arrays[i,j] = S
 
     return (crashes, S_arrays)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+# A_range = np.linspace(0,10, 50)
 PAR1_range = np.linspace(0, 1 ,50)
 PAR2_range = (1-PAR1_range)*0.3
 PAR3_range = (1-PAR1_range)*0.2
 
-SIM = 100
-threshold = 0.2
+SIM = 1000
+treshold = 0.8
 N0 = 1000
+crashes, S_ARRAY = parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range, SIM, treshold, N0)
 
-crashes, S_ARRAY = parallel_simulation_phase_transition(PAR1_range,PAR2_range,PAR3_range, SIM, threshold, N0)
+# crashes, S_ARRAY = parallel_simulation_phase_transition2(A_range, SIM, treshold, N0)
 
 crashes_mean = np.mean(crashes, axis=1)
 crashes_std = np.std(crashes, axis=1)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tau = 9
+# PAR1_range = A_range
+tau = 2
 N = 100
 
-q_vals = np.linspace(-5, 5, 1000)
+
+q_vals = np.linspace(-1, 1, 1000)
 C_q = np.zeros(q_vals.shape[0] - 2) 
 X_q = np.zeros(q_vals.shape[0])
 S_q = np.zeros(q_vals.shape[0] - 1)
-mu_i = np.zeros(len(splt))
+
 lhs = np.zeros((q_vals.shape[0]))
 rhs = np.zeros((q_vals.shape[0]))
-
 
 
 C_q_collector = np.empty((len(PAR1_range), SIM, *C_q.shape))
@@ -299,7 +344,7 @@ for i_par,par in enumerate(PAR1_range):
     for sim in range(SIM):
         series = S_ARRAY[i_par, sim]
         splt = np.array_split(series, N)
-        
+        mu_i = np.zeros(len(splt))
         ## structs
         denom_sum = 0
 
@@ -341,6 +386,12 @@ S_q_collector_no_nan = np.nan_to_num(S_q_collector, nan=0)
 S_q_mean = np.mean(S_q_collector_no_nan, axis=1)
 print(S_q_mean.shape)
 
+# np.save("../../data/PHASE_2/C_q_mean", C_q_mean)
+# np.save("../../data/PHASE_2/X_q_mean", X_q_mean)
+# np.save("../../data/PHASE_2/S_q_mean", S_q_mean)
+# np.save("../../data/PHASE_2/q_vals", q_vals)
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 plt.figure(figsize=(6, 4))
 plt.imshow(C_q_mean, aspect="auto", interpolation="None", vmin=0, vmax=0.01)
@@ -357,28 +408,11 @@ plt.imshow(X_q_mean, aspect="auto", interpolation="None")
 plt.colorbar()
 plt.show()
 
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-import numpy as np
-
-import scipy
-from scipy import special, spatial, sparse
-import scipy.sparse.linalg
-
-import matplotlib.pyplot as plt
-from matplotlib import animation, rc, ticker
-from mpl_toolkits.mplot3d import Axes3D
-rc('animation', html='jshtml')
-
-from IPython.display import clear_output, HTML
-
-import math
-import random
-import time
-
-from numba import jit, njit, prange
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# par_range = A_range
 par_range = np.linspace(0, 1, 50)
-q_vals = np.linspace(-5, 5, 100)[1:-1]
+q_vals = np.linspace(-5, 5, 1000)[1:-1]
 
 print(q_vals.shape, par_range.shape)
 print(C_q_mean.shape)
@@ -386,12 +420,12 @@ print(C_q_mean.shape)
 xx, yy = np.meshgrid(q_vals, par_range)
 
 
-fig = plt.figure(figsize=(12,10))
+fig = plt.figure(figsize=(20,20))
 ax = plt.axes(projection='3d')
 idk = ax.plot_surface(
-    xx, yy, np.exp(C_q_mean), cmap="hsv", rstride=2, cstride=2, 
+    xx, yy, C_q_mean, cmap="turbo", rstride=2, cstride=2, 
     shade=False, linewidth=0.05, antialiased=True, edgecolor="black", 
-    label="String", vmin=1, vmax=1.07)
+    label="String", vmin=0, vmax=2*10**(-5))
 # idk._edgecolors2d=idk._edgecolors3d  # fixes some weird bug when using ax.legend()
 # idk._facecolors2d=idk._facecolors3d
 # ax.plot_wireframe(xx, yy, m, cmap = 'coolwarm',  lw=1, rstride=1, cstride=1)
@@ -399,7 +433,40 @@ idk = ax.plot_surface(
 ax.set_xlabel('q_vals')
 ax.set_ylabel('par_range')
 ax.set_zlabel('Cq')
-ax.view_init(25, 260)
+ax.view_init(30,80)
+# ax.legend()
+# idk.set_clim(-1,1)
+# fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
+# ax.set_xlim(-1,1)
+plt.tight_layout()
+# fig.legend()
+# plt.savefig("CP123", dpi=300)
+plt.show()
+# plt.savefig("img/E", dpi=300)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# par_range = np.linspace(0, 1, 50)
+q_vals = np.linspace(-5, 5, 1000)[1:]
+print(q_vals.shape, par_range.shape)
+print(S_q_mean.shape)
+
+# S_q_mean_nan = np.where(S_q_mean==0, np.nan, S_q_mean)
+xx, yy = np.meshgrid(q_vals, par_range)
+
+
+fig = plt.figure(figsize=(12,10))
+ax = plt.axes(projection='3d')
+idk = ax.plot_surface(
+    xx, yy, S_q_mean, cmap="hsv", rstride=2, cstride=2, 
+    shade=False, linewidth=0.05, antialiased=True, edgecolor="black", 
+    label="String", vmin=-0.07, vmax=-0.01)
+# idk._edgecolors2d=idk._edgecolors3d  # fixes some weird bug when using ax.legend()
+# idk._facecolors2d=idk._facecolors3d
+# ax.plot_wireframe(xx, yy, m, cmap = 'coolwarm',  lw=1, rstride=1, cstride=1)
+# ax.set_title('')
+ax.set_xlabel('q_vals')
+ax.set_ylabel('par_range')
+ax.set_zlabel('Sq')
+ax.view_init(20, 130)
 # ax.legend()
 # idk.set_clim(-1,1)
 # fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
@@ -408,28 +475,25 @@ plt.tight_layout()
 # plt.savefig("img/E", dpi=300)
 plt.show()
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par_range = np.linspace(0, 1, 50)
-q_vals = np.linspace(-5, 5, 100)[1:]
-print(q_vals.shape, par_range.shape)
-print(C_q_mean.shape)
+# par_range = np.linspace(0, 1, 50)
+q_vals = np.linspace(-5, 5, 1000)
 
 xx, yy = np.meshgrid(q_vals, par_range)
 
-
-fig = plt.figure(figsize=(12,10))
+fig = plt.figure(figsize=(6,5))
 ax = plt.axes(projection='3d')
 idk = ax.plot_surface(
-    xx, yy, np.exp(S_q_mean), cmap="hsv", rstride=2, cstride=2, 
+    xx, yy, X_q_mean, cmap="summer", rstride=2, cstride=2, 
     shade=False, linewidth=0.05, antialiased=True, edgecolor="black", 
-    label="String", vmin=0, vmax=1.07)
+    label="String", vmin=0, vmax=3)
 # idk._edgecolors2d=idk._edgecolors3d  # fixes some weird bug when using ax.legend()
 # idk._facecolors2d=idk._facecolors3d
 # ax.plot_wireframe(xx, yy, m, cmap = 'coolwarm',  lw=1, rstride=1, cstride=1)
 # ax.set_title('')
 ax.set_xlabel('q_vals')
 ax.set_ylabel('par_range')
-ax.set_zlabel('Cq')
-ax.view_init(25, 245)
+ax.set_zlabel('Xq')
+ax.view_init(20, 270)
 # ax.legend()
 # idk.set_clim(-1,1)
 # fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
@@ -437,7 +501,15 @@ plt.tight_layout()
 # fig.legend()
 # plt.savefig("img/E", dpi=300)
 plt.show()
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+np.save("../../data/PHASE_DOUBLE_REDO/X_q_mean", X_q_mean)
+np.save("../../data/PHASE_DOUBLE_REDO/C_q_mean", C_q_mean)
+np.save("../../data/PHASE_DOUBLE_REDO/S_q_mean", S_q_mean)
+np.save("../../data/PHASE_DOUBLE_REDO/par_range", par_range)
+np.save("../../data/PHASE_DOUBLE_REDO/q_vals", q_vals)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 lags = np.arange(10,100,10)
 # lags = [1] 
 
@@ -457,7 +529,11 @@ for i, lag in enumerate(lags):
 # plt.figure(figsize=(15,5))
 # plt.plot(np.mean(miu_cut, axis=0))
 # plt.show()
-
+np.save("../../data/PHASE_DOUBLE_REDO/")
+np.save("../../data/PHASE_DOUBLE_REDO/")
+np.save("../../data/PHASE_DOUBLE_REDO/")
+np.save("../../data/PHASE_DOUBLE_REDO/")
+np.save("../../data/PHASE_DOUBLE_REDO/")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # G - agents 
@@ -757,7 +833,7 @@ plt.show()
 # N_MEAN_MEAN =np.save("../../data/SIM2/N_MEAN_MEA_sim1000_A_var_nobounds", N_MEAN_MEAN)
 # S_MEAN_MEAN =np.save("../../data/SIM2/S_MEAN_MEA_sim1000_A_var_nobounds", S_MEAN_MEAN)
 # X_MEAN_MEAN =np.save("../../data/SIM2/X_MEAN_MEA_sim1000_A_var_nobounds", X_MEAN_MEAN)
-# D_MEAN_MEAN =np.save("../../data/SIM2/D_MEAN_MEA_sim1000_A_var_nobounds", D_MEAN_MEAN)
+# D_MEAN_MEAN =np.save("..tete/../data/SIM2/D_MEAN_MEA_sim1000_A_var_nobounds", D_MEAN_MEAN)
 # T_MEAN_MEAN =np.save("../../data/SIM2/T_MEAN_MEA_sim1000_A_var_nobounds", T_MEAN_MEAN)
 # C_MEAN_MEAN =np.save("../../data/SIM2/C_MEAN_MEA_sim1000_A_var_nobounds", C_MEAN_MEAN)
 # G_MEAN_STD  =np.save("../../data/SIM2/G_MEAN_STD_sim1000_A_var_nobounds", G_MEAN_STD )

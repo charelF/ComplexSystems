@@ -1,3 +1,5 @@
+## The following licence only applies to the file ```entropyestimators.py``` and all files importing said file
+
 The MIT License (MIT)
 
 Copyright (c) {{{year}}} {{{fullname}}}
