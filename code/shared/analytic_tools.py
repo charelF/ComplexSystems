@@ -108,3 +108,23 @@ def count_crashes(X, treshold, window=5):
             crashes += 1
 
     return crashes
+
+
+def get_crash_indices(X, treshold, window=5):
+    """
+    does it better than james
+    - X: log returns array, in range -1, 1
+    - treshold: the log return that defines a crash: 
+        - e.g. if 20% drop over 5 days = crash then the treshold should be 0.8
+    - window: how many days: default: 5 days
+    """
+
+    crashes = []
+    for i in range(len(X)-window):
+        period = X[i:i+window]+1
+        prod = np.prod(period)
+        geo_mean = prod ** (1/window)
+        if geo_mean < treshold:
+            crashes.append(i)
+
+    return crashes
