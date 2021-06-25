@@ -194,7 +194,7 @@ tau = 9
 N = 100
 # series = S
 splt = np.array_split(series, N)
-q_vals = np.linspace(-4, 4, 100)
+q_vals = np.linspace(-4, 4, 2000)
 
 ## structs
 C_q = np.zeros(q_vals.shape[0] - 2) 
@@ -277,7 +277,7 @@ def parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range,SIM, 
             
             
             crashes[i,j] = count_crashes(X, treshold, window=5)
-            S_arrays[i,j] = S
+            S_arrays[i,j] = X
 
     return (crashes, S_arrays)
 
@@ -299,7 +299,7 @@ def parallel_simulation_phase_transition2(A_range, SIM, treshold, N0):
             
             
             crashes[i,j] = count_crashes(X, treshold, window=5)
-            S_arrays[i,j] = S
+            S_arrays[i,j] = X
 
     return (crashes, S_arrays)
 
@@ -309,7 +309,7 @@ PAR1_range = np.linspace(0, 1 ,50)
 PAR2_range = (1-PAR1_range)*0.3
 PAR3_range = (1-PAR1_range)*0.2
 
-SIM = 1000
+SIM = 10
 treshold = 0.8
 N0 = 1000
 crashes, S_ARRAY = parallel_simulation_phase_transition(PAR1_range,PAR2_range, PAR3_range, SIM, treshold, N0)
@@ -322,10 +322,11 @@ crashes_std = np.std(crashes, axis=1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # PAR1_range = A_range
 tau = 2
-N = 100
+N = 10
 
 
-q_vals = np.linspace(-1, 1, 1000)
+q_vals = np.linspace(-5, 5, 5000)
+# q_vals = np.linspace(-1, 1, 10)
 C_q = np.zeros(q_vals.shape[0] - 2) 
 X_q = np.zeros(q_vals.shape[0])
 S_q = np.zeros(q_vals.shape[0] - 1)
@@ -360,9 +361,12 @@ for i_par,par in enumerate(PAR1_range):
             ## eq 11
             lhs[k] = np.log(np.sum(mu_i**val))
             rhs[k] = np.log(N)
+            
             ## solve for slope of log-log
             ## x_q equivelent to tau(q) in casenna
             X_q[k] = lhs[k] / rhs[k]
+        # print(lhs)
+        # print(X_q)
 
         # ## cannot obtain C_q for first and last q vals
         for l in range(1, q_vals.shape[0] - 1):
@@ -374,17 +378,21 @@ for i_par,par in enumerate(PAR1_range):
         S_q_collector[i_par, sim] = S_q
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-C_q_collector_no_nan = np.nan_to_num(C_q_collector, nan=0)
-C_q_mean = np.mean(C_q_collector_no_nan, axis=1)
-print(C_q_mean.shape)
+C_q_mean = np.nanmean(C_q_collector, axis=1)
+X_q_mean = np.nanmean(X_q_collector, axis=1)
+S_q_mean = np.nanmean(S_q_collector, axis=1)
 
-X_q_collector_no_nan = np.nan_to_num(X_q_collector, nan=0)
-X_q_mean = np.mean(X_q_collector_no_nan, axis=1)
-print(X_q_mean.shape)
+# C_q_collector_no_nan = np.nan_to_num(C_q_collector, nan=0)
+# C_q_mean = np.mean(C_q_collector_no_nan, axis=1)
+# print(C_q_mean.shape)
 
-S_q_collector_no_nan = np.nan_to_num(S_q_collector, nan=0)
-S_q_mean = np.mean(S_q_collector_no_nan, axis=1)
-print(S_q_mean.shape)
+# # X_q_collector_no_nan = np.nan_to_num(X_q_collector, nan=0)
+# X_q_mean = np.mean(X_q_collector_no_nan, axis=1)
+# print(X_q_mean.shape)
+
+# # S_q_collector_no_nan = np.nan_to_num(S_q_collector, nan=0)
+# S_q_mean = np.mean(S_q_collector_no_nan, axis=1)
+# print(S_q_mean.shape)
 
 # np.save("../../data/PHASE_2/C_q_mean", C_q_mean)
 # np.save("../../data/PHASE_2/X_q_mean", X_q_mean)
@@ -412,7 +420,7 @@ plt.show()
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # par_range = A_range
 par_range = np.linspace(0, 1, 50)
-q_vals = np.linspace(-5, 5, 1000)[1:-1]
+q_vals = np.linspace(-5, 5, 5000)[1:-1]
 
 print(q_vals.shape, par_range.shape)
 print(C_q_mean.shape)
@@ -425,7 +433,7 @@ ax = plt.axes(projection='3d')
 idk = ax.plot_surface(
     xx, yy, C_q_mean, cmap="turbo", rstride=2, cstride=2, 
     shade=False, linewidth=0.05, antialiased=True, edgecolor="black", 
-    label="String", vmin=0, vmax=2*10**(-5))
+    label="String", vmin=0, vmax=8*10**(-6))
 # idk._edgecolors2d=idk._edgecolors3d  # fixes some weird bug when using ax.legend()
 # idk._facecolors2d=idk._facecolors3d
 # ax.plot_wireframe(xx, yy, m, cmap = 'coolwarm',  lw=1, rstride=1, cstride=1)
@@ -433,7 +441,7 @@ idk = ax.plot_surface(
 ax.set_xlabel('q_vals')
 ax.set_ylabel('par_range')
 ax.set_zlabel('Cq')
-ax.view_init(30,80)
+ax.view_init(90,80)
 # ax.legend()
 # idk.set_clim(-1,1)
 # fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
@@ -466,7 +474,7 @@ idk = ax.plot_surface(
 ax.set_xlabel('q_vals')
 ax.set_ylabel('par_range')
 ax.set_zlabel('Sq')
-ax.view_init(20, 130)
+ax.view_init(10, 130)
 # ax.legend()
 # idk.set_clim(-1,1)
 # fig.colorbar(idk, shrink=0.3, aspect=10, pad=0)
@@ -503,11 +511,11 @@ plt.tight_layout()
 plt.show()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-np.save("../../data/PHASE_DOUBLE_REDO/X_q_mean", X_q_mean)
-np.save("../../data/PHASE_DOUBLE_REDO/C_q_mean", C_q_mean)
-np.save("../../data/PHASE_DOUBLE_REDO/S_q_mean", S_q_mean)
-np.save("../../data/PHASE_DOUBLE_REDO/par_range", par_range)
-np.save("../../data/PHASE_DOUBLE_REDO/q_vals", q_vals)
+# np.save("../../data/PHASE_DOUBLE_REDO/X_q_mean", X_q_mean)
+# np.save("../../data/PHASE_DOUBLE_REDO/C_q_mean", C_q_mean)
+# np.save("../../data/PHASE_DOUBLE_REDO/S_q_mean", S_q_mean)
+# np.save("../../data/PHASE_DOUBLE_REDO/par_range", par_range)
+# np.save("../../data/PHASE_DOUBLE_REDO/q_vals", q_vals)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 lags = np.arange(10,100,10)

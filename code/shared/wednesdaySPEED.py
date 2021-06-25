@@ -47,7 +47,6 @@ def cluster_info(arr):
 def trunc(X, high, low):
     return min(high, max(X, low))
 
-@jit(nopython=True)
 def simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
                ph = 0.0485, pa = 0.7, N0=2000, N1 = 100, A =4, a=1, h=1, 
                pi1 = 0.5, pi2 = 0.3, pi3 = 0.2, ub=1000, lb=20):
