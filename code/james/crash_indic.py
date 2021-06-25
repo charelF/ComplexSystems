@@ -11,9 +11,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import warnings
 warnings.simplefilter("ignore")
 
-# np.random.seed(1)
-# random.seed(1)
-
 import sys
 sys.path.append("..")
 sys.path.append("../shared")
@@ -59,9 +56,17 @@ def contiguous_regions(condition):
     return idx
 
 def moving_average(x, w):
+    '''
+    utility function for calculating moving average
+    of period w 
+    '''
     return np.convolve(x, np.ones(w), 'valid') / w
 
 def visualiseNICE(G, P, N, S, X, D, T, U, C):
+    '''
+    8 axis plot for visiualising the output of our model execution
+    '''
+
     fig, (ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8) = plt.subplots(
         ncols=1, nrows=8, figsize=(12,12), sharex=True, gridspec_kw = 
         {'wspace':0, 'hspace':0.05, 'height_ratios':[2,2,1,1,1,1,1,1]}
@@ -165,7 +170,9 @@ def visualiseNICE(G, P, N, S, X, D, T, U, C):
 
 # %%
 
-## Influence of A upon Crashes
+'''
+How do the number of crashes vary with the value of A (activity)
+'''
 
 ## sim parameters
 sims = 1
@@ -177,7 +184,6 @@ A_range = np.linspace(3, 5, A_vals)
 res_A = np.zeros((sims, A_vals))
 
 for i in range(sims):
-    print(i)
     for j, val in enumerate(A_range):
         G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
                 ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = val, a=1, h=1, 
@@ -187,6 +193,7 @@ for i in range(sims):
     
 # %%
 
+# plot results of above experiment 
 fig = plt.figure(figsize=(12, 8))
 plt.errorbar(A_range, np.mean(res_A, axis=0), yerr=np.std(res_A, axis=0), color="C4")
 plt.grid(alpha=0.2)
@@ -196,7 +203,9 @@ plt.show()
 
 # %%
 
-## Influence of p_h upon Crashes
+'''
+How do the number of crashes vary with the value of ph?
+'''
 
 ## sim parameters
 sims = 10
@@ -218,6 +227,8 @@ for i in range(sims):
 
 # %%
 
+# plot results of above experiment 
+
 fig = plt.figure(figsize=(12, 8))
 plt.errorbar(ph_range, np.mean(res_ph, axis=0), yerr=np.std(res_ph, axis=0), color="C4")
 plt.grid(alpha=0.2)
@@ -227,7 +238,9 @@ plt.show()
     
 # %%
 
-## Influence of pd upon Crashes
+'''
+How do the number of crashes vary with the value of pd?
+'''
 
 ## sim parameters
 sims = 10
@@ -248,6 +261,7 @@ for i in range(sims):
 
 # %%
 
+# plot results of above 
 fig = plt.figure(figsize=(12, 8))
 plt.errorbar(pd_range, np.mean(res_pd, axis=0), yerr=np.std(res_pd, axis=0), color="C4")
 plt.grid(alpha=0.2)
@@ -257,7 +271,9 @@ plt.show()
 
 # %% 
 
-## Influence of number of agents upon Crashes
+'''
+How do the number of crashes vary with the number of agents in the model?
+'''
 
 ## sim parameters
 sims = 15
@@ -279,6 +295,7 @@ for i in range(sims):
 
 # %%
 
+# plot the results of the above 
 fig = plt.figure(figsize=(12, 8))
 plt.errorbar(trader_range, np.mean(res_traders, axis=0), yerr=1.96*np.std(res_traders, axis=0) / np.sqrt(sims), color="C4")
 plt.grid(alpha=0.2)
@@ -289,7 +306,9 @@ plt.show()
 
 # %%
 
-## Influence of number of agents upon Crashes
+'''
+How do the number of crashes vary with the lenght of time period investigated?
+'''
 
 ## sim parameters
 sims = 55
@@ -310,11 +329,12 @@ for k, n_val in enumerate(n_range):
                     pi1 = 0.5, pi2 = val, pi3 = 0.5 - val)
             condition = X < threshold
             res_pi2[i, j, k] = contiguous_regions(condition).shape[0]
-#%%
-
-np.save("arrs/pi2_crash_simulation", res_pi2)
 
 # %%
+
+'''
+How do the number of crashes vary as we vary the proportion of stochastic traders
+'''
 
 colors = ["C3", "C7", "C9"]
 
@@ -334,7 +354,9 @@ plt.show()
 
 # %%
 
-## Influence of threshold upon Crashes
+'''
+How do the number of crashes vary as we vary the thresold value?
+'''
 
 ## sim parameters
 sims = 15
@@ -354,6 +376,8 @@ for i in range(sims):
 
 # %%
 
+# plot results of the above experiment, with the error bars 
+
 fig = plt.figure(figsize=(12, 8))
 plt.errorbar(threshold_range, np.mean(res_threshold, axis=0), yerr=np.std(res_threshold, axis=0), color="C4")
 plt.grid(alpha=0.2)
@@ -363,7 +387,11 @@ plt.show()
 
 # %%
 
-## Influence of number of consecutive time periods required for crash
+'''
+How do the number of crashes vary with the number of 
+time period in the crash defintiion?
+'''
+
 
 ## sim parameters
 sims = 10
@@ -395,6 +423,11 @@ plt.show()
 
 # %%
 
+'''
+How do the number of crashes vary as we increase the proportion of 
+moving average traders?
+'''
+
 ## sim parameters
 sims = 20
 threshold = -0.15
@@ -414,6 +447,8 @@ for i in range(sims):
         res_pi3[i, j] = contiguous_regions(condition).shape[0]
 
 # %%
+
+# plotting figure of the of the above experiment
 
 fig = plt.figure(figsize=(12, 8))
 plt.errorbar(pi3_range, np.mean(res_pi3, axis=0), yerr=1.96*np.std(res_pi3, axis=0) / np.sqrt(sims), color="C4")
@@ -449,4 +484,3 @@ print(res_pm.shape)
 print(res_pm[0,:].mean())
 print(res_pm[1,:].mean())
 st.ttest_ind(res_pm[0,:], res_pm[1,:], alternative="greater")
-# %%
