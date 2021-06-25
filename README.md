@@ -30,6 +30,7 @@ For the code part, over time we have realised that the best way to work with jup
     - ```datacollapse``` - experimenting with collapsing all the crashes at one point and seeing whether metrics like eigenvectors from correlation matrix or mutual information matrix can be used as early warning signal
     - ```future_market_sim``` - experimenting with generating futures markets for various stocks. This was done to see if we can generate derivatives of stock that we could then measure the informatino transmision on
     - ```wednesdayTEST``` - testing our model
+    - ```OTHER``` - collection of various files used throughout the project
 
 
 
