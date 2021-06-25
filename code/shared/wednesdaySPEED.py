@@ -13,8 +13,18 @@ from numba import jit
 
 @jit(nopython=True)
 def cluster_info(arr):
-    """ number of clusters (nonzero fields separated by 0s) in array
-        and size of cluster
+    """ returns various information about the clusters at a given timepoint which correponds to 1D array arr.
+    the function makes somewhat clumsy use of list instead of a neater implementation with dictionaries as
+    numba does not support python dictionaries.
+
+    input:
+    - arr: the 1D array of cells
+
+    output:
+    - Ncl: int: number of clusters
+    - Nk: list: at index k, this list contains the length of cluster k
+    - k2coord: list: at index k, this list contains a list with all the 1D indices of nodes in this cluster
+    - coord2k: list: at index i, this list contains the cluster to which the cell at coordinate i belongs to
     """
     data = []
     k2coord = []
@@ -23,7 +33,6 @@ def cluster_info(arr):
     new_cluster = True
 
     for i in range(0,len(arr)):
-
         if arr[i] == 0:
             new_cluster = True
             coord2k[i] = -1
@@ -35,7 +44,6 @@ def cluster_info(arr):
             else:
                 k2coord[k].append(i)
                 data[k] += 1
-
             coord2k[i] = k
             new_cluster = False
 
@@ -45,14 +53,47 @@ def cluster_info(arr):
 
 @jit(nopython=True)
 def trunc(X, high, low):
+    """truncates the value X to be within [high, low]"""
     return min(high, max(X, low))
 
+@jit(nopython=True)
 def simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-               ph = 0.0485, pa = 0.7, N0=2000, N1 = 100, A =4, a=1, h=1, 
-               pi1 = 0.5, pi2 = 0.3, pi3 = 0.2, ub=1000, lb=20):
+    ph = 0.0485, pa = 0.7, N0=2000, N1 = 100, A =4, a=1, h=1, 
+    pi1 = 0.5, pi2 = 0.3, pi3 = 0.2, ub=1000, lb=20
+):
+    """ runs our model
 
-    ma10 = 0.05   #  Required: MA2>MA4>MA10
-    ma4 = 0.3     # split between agents that use MA2,MA4 and MA10
+    input:
+    - trigger: [experimental feature] whether crashes are triggered at specific time intervals. not used in final experiments
+    - bound: [experimental feature] whether to bound the stock price to an interval of [lb, ub]. not used in simulations
+    - pd: probability of trader at edge of cluster leaving
+    - pe: probability of random inactive trader becoming active
+    - ph: probability of trader convincing one of its inactive neighbours to join
+    - pa: initial distribution of inactive and active traders
+    - N0: amount of timesteps to simulate the model for (length of grid)
+    - N1: amount of cells (width of grid)
+    - A: cluster influence to stochastic cells
+    - a: neighbour influence to stochastic cells
+    - h: self influence to stochastic cells
+    - pi1: probability of a cell being of a stochastic trader as proposed by bartolozzi
+    - pi2: probability of a cell being a deterministic momentum traders
+    - pi3: probability of a cell being a deterministic moving average trader
+    - ub and lb: upper and lower bound for stock price, only used if bounds=True
+
+    notes:
+    - pi1 + pi2 + pi3 must be 1
+    - various other parameters have been investigated but deemed not interesting enough to be used as input
+        parameters and are instead hardcoded
+
+    output: G,P,N,S,X,D,T,U,C
+    - G: 
+
+    """
+
+    # which averages moving average traders use
+    # required: ma10 < ma4 < ma2
+    ma10 = 0.05
+    ma4 = 0.3
     ma2 = 0.6
 
     # max absolute influence
@@ -62,9 +103,10 @@ def simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
     min_account_balance = 800
     initial_stock_price = 200
 
-    drift = 0  # not really working
-    max_look_back = 4
+    drift = 0  # risk free interest rate / drift of stuck - not fully implemented
+    max_look_back = 4  # max amount of days that momentum traders look back at their performance
 
+    # the choice array. Written like this for compatibility with numba
     choice = np.array([-1,1], dtype=np.int8)
 
     G = np.zeros(shape=(N0,N1), dtype=np.int32)
