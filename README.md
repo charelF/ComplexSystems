@@ -16,6 +16,9 @@ For the code part, over time we have realised that the best way to work with jup
 - ```code/shared/bartolozziSPEED``` - the fast Numba implementation of the original algorithm by Bartolozzi et al.
 - ```code/shared/original_implementation``` - the original implementation of the algorithm by Bartolozzi et al.
 
+- ```code/alex/3D_plot_generator``` - the file used to generate 3D plots of heat capacity and entropy of the system.
+- ```code/alex/OTHER``` - the folder with all other code/functions used in exploration but never used for final sumbition/presentation.
+
 
 
 
