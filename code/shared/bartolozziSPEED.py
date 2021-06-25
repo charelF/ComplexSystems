@@ -11,6 +11,7 @@ from numba import jit
 
 #%%
 
+
 @jit(nopython=True)
 def p(k, i, xi, A, a, h, k2coord, Gt):
     return 1 / (1 + math.exp(-2 * I(k, i, xi, A, a, h, k2coord, Gt)))
