@@ -14,10 +14,14 @@ from numba import jit
 
 @jit(nopython=True)
 def p(k, i, xi, A, a, h, k2coord, Gt):
+    """ sigmoid-esque function to transform a number in [-inf, inf] into a prob in [-1,1]
+    """
     return 1 / (1 + math.exp(-2 * I(k, i, xi, A, a, h, k2coord, Gt)))
 
 @jit(nopython=True)
 def I(k, i, xi, A, a, h, k2coord, Gt):
+    """ computes the influence exerced on a given node as defined by Bartolozzi
+    """
     total = 0
     zeta = random.uniform(-1,1)  # sampled for each unique (k,i)
     for j in k2coord[k]:  # for each coordinate in cluster k
@@ -28,8 +32,7 @@ def I(k, i, xi, A, a, h, k2coord, Gt):
 
 @jit(nopython=True)
 def cluster_info(arr):
-    """ number of clusters (nonzero fields separated by 0s) in array
-        and size of cluster
+    """ see function with same name in wednesdaySPEED.py
     """
     data = []
     k2coord = []
@@ -60,6 +63,8 @@ def cluster_info(arr):
 
 @jit(nopython=True)
 def generate(pd, pe, ph, pa, N0, N1, A, a, h):
+    """ see function `simulate` in wednesdaySPEED.py
+    """
 
     G = np.zeros(shape=(N0,N1)).astype(np.int16)
     # G[0] = np.random.choice(a=[-1,0,1], p=[pa/2, 1-pa, pa/2], size=N1, replace=True)

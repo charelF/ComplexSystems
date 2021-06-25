@@ -3,6 +3,9 @@ import pandas as pd
 import random
 import math
 
+# the orginal implementation of the code from bartolozzi et al.
+# see comments in wednesdaySPEED
+
 def p(k, i, xi, A, a, h, k2coord, Gt):
     return 1 / (1 + math.exp(-2 * I(k, i, xi, A, a, h, k2coord, Gt)))
 
@@ -16,9 +19,6 @@ def I(k, i, xi, A, a, h, k2coord, Gt):
     return (1 / len(k2coord[k])) * total
 
 def cluster_info(arr):
-    """ number of clusters (nonzero fields separated by 0s) in array
-        and size of cluster
-    """
     data = []
     k2coord = {}
     k = 0
@@ -91,7 +91,6 @@ def execute(pd, pe, ph, A, a, h):
                 else:
                     G[t+1,i] = -1
 
-            
             # trader influences non-active neighbour to join
             if G[t,i] != 0:
                 stance = G[t,i]
@@ -121,5 +120,4 @@ def execute(pd, pe, ph, A, a, h):
                     G[t+1,i] = random.choice([-1,1])
 
     ## r = (x - np.mean(x)) / np.std(x)
-
     return x, G

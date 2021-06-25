@@ -12,12 +12,17 @@ A cellular automata
 
 For the code part, over time we have realised that the best way to work with jupyter notebooks and simulatenously having version control is to have individual folders for each person. People can then put the code they work on in their own folder, which assures that there are not git conflicts since other members are not supposed to work on the files in someone elses folder. Instead they should import or, if not possible, copy them in their own repository. We found this to be the best way to avoid merge conflicts, which are very hard to deal with in jupyter notebooks.
 
-- ```code/shared/wednesdaySPEED``` - the fast Numba implementation of our final algorithm. It is called wednesday as it was created on a wednesday and we were unable to find a better name
-- ```code/shared/bartolozziSPEED``` - the fast Numba implementation of the original algorithm by Bartolozzi et al.
-- ```code/shared/original_implementation``` - the original implementation of the algorithm by Bartolozzi et al.
+- ```code/shared```:
+    - ```wednesdaySPEED``` - the fast Numba implementation of our final algorithm. It is called wednesday as it was created on a wednesday and we were unable to find a better name
+    - ```bartolozziSPEED``` - the fast Numba implementation of the original algorithm by Bartolozzi et al.
+    - ```original_implementation``` - the original implementation of the algorithm by Bartolozzi et al.
+    - ```analytic_tools``` - various functions and code snippets used all throughout the project
 
-- ```code/alex/3D_plot_generator``` - the file used to generate 3D plots of heat capacity and entropy of the system.
-- ```code/alex/OTHER``` - the folder with all other code/functions used in exploration but never used for final sumbition/presentation.
+- ```code/alex```:
+    - ```3D_plot_generator``` - the file used to generate 3D plots of heat capacity and entropy of the system.
+    - ```OTHER``` - the folder with all other code/functions used in exploration but never used for final submission/presentation.
+
+- ```code/alex```
 
 
 
