@@ -21,8 +21,13 @@ from original_implementation import execute
 
 # %%
 
+'''
+The following cells are used to generate graphs for the Hurst Exponent 
+analysis
+'''
+
 res = np.zeros((20, 30))
-for z in range(20):
+for z in range(1):
     G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
         ph = 0.0485, pa = 0.7, N0=1000, N1 = 100, A = 4, a=1, h=1, 
         pi1 = 0.5, pi2 = 0.3, pi3 = 0.2)
@@ -33,6 +38,10 @@ res_mean_ca = np.mean(res, axis=0)
 res_std_ca = np.std(res, axis=0)
 
 #%%
+
+'''
+loading data for S&P
+'''
 
 df = pd.read_csv("../../data/all_world_indices_clean.csv")
 print(df.columns)
@@ -55,6 +64,10 @@ res_std_sp = np.std(res, axis=0)
 
 #%%
 
+'''
+loading data for the NKY
+'''
+
 df = pd.read_csv("../../data/all_world_indices_clean.csv")
 df_nky = df[["Date", "NKY Index"]]
 df_nky["Date"] = pd.to_datetime(df_nky["Date"], format='%d/%m/%Y')
@@ -74,6 +87,10 @@ res_mean_nky = np.mean(res, axis=0)
 res_std_nky = np.std(res, axis=0)
 
 #%%
+
+'''
+plotting hurst exponent on multiple y axis
+'''
 
 fig, (ax1, ax2, ax3) = plt.subplots(
     ncols=1, nrows=3, figsize=(12,8), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0}
@@ -103,6 +120,10 @@ ax3.legend()
 plt.savefig("imgs/img_hurst_exp_triple", dpi=300)
 # %%
 
+'''
+Alternative diagram for the Hurst Exponent
+'''
+
 plt.plot(q_vals, res_mean_ca, 'v-', label='Rule-Based CA')
 plt.fill_between(q_vals, res_mean_ca + res_std_ca, res_mean_ca - res_std_ca, alpha=0.1)
 plt.plot(q_vals, res_mean_sp, 'x-', label='S&P500')
@@ -118,6 +139,11 @@ plt.show()
 
 # %%
 
+'''
+Power law distributions for the cluster size density. For the bartolozzi
+model and the new, amended model
+'''
+
 ## new model
 G_new, P, N, S, X, D, T, U, C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
     ph = 0.0485, pa = 0.7, N0=1000, N1 = 4000, A = 4, a=1, h=1, 
@@ -125,11 +151,6 @@ G_new, P, N, S, X, D, T, U, C, initial_account_balance = simulation(trigger = Fa
 
 ## old model 
 r, G_old = execute(0.1, 0.0001, 0.1, 2, 0.1, 0.1)
-
-# %%
-
-np.save("arrs/G_new_big_dist", G_new)
-np.save("arrs/G_old_big_dist", G_old)
 
 # %%
 
@@ -186,7 +207,9 @@ plt.show()
 
 # %%
 
-## return distribution 
+'''
+Standardised log return distibution
+'''
 
 df = pd.read_csv("../../data/all_world_indices_clean.csv")
 df_spx = df[["Date", "SPX Index"]]
@@ -204,6 +227,10 @@ r = (X - np.mean(X)) / np.std(X)
 
 #%%
 
+'''
+plotting log return histogram
+'''
+
 plt.hist(r, alpha=0.4, bins=30, label="Automaton", density=True)
 plt.hist(log_ret_dat_stan, bins=30, alpha=0.4, label="S&P 500", density=True)
 plt.yscale("log")
@@ -214,36 +241,27 @@ plt.ylabel(r"$\rho$")
 plt.xlabel(r"$r$")
 plt.savefig("imgs/standardised_dist_plot", dpi=300)
 plt.show()
+
     
-## 2 independent samples KS test
+'''
+2 independent sample Kolmogorov-Smirnov to test if distributions
+are the same
+'''
+
 ksstat, pval = stats.ks_2samp(r, log_ret_dat_stan)
 print(ksstat, pval)
 
 # %%
 
+'''
+Quantifying number of crashes versus A
+'''
+
 N_range = [10, 50, 250]
 A_range = np.linspace(0.2, 10, 50)
 sims = 150
 
-# NA_res = np.zeros((sims, len(N_range), A_range.shape[0]))
-
-# for j, N_val in enumerate(N_range):
-#     for i, A_val in enumerate(A_range):
-
-#         for k in range(sims):
-#             print(N_val, A_val, k)
-#             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = False, pd = 0.05, pe = 0.01,
-#                     ph = 0.0485, pa = 0.7, N0=1000, N1 = N_val, A = A_val, a=1, h=1, 
-#                     pi1 = 0.8, pi2 = 0.2, pi3 = 0)
-
-#             NA_res[k, j, i] = count_crashes(X, 0.65, window=5) 
-
-# %%
-
-np.save("arrs/crashes_A_N", NA_res)
-# %%
-
-NA_res = np.load("crashes_A_N.npy")
+##NA_res = np.load("crashes_A_N.npy")
 mn = np.mean(NA_res, axis=0)
 sd = 1.96 * np.std(NA_res, axis=0) / np.sqrt(sims)
 
@@ -260,6 +278,10 @@ plt.show()
 
 
 # %%
+
+'''
+Autocorrelations of both volatility and returns for S&P and model
+'''
 
 df = pd.read_csv("../../data/all_world_indices_clean.csv")
 df_spx = df[["Date", "SPX Index"]]
@@ -303,6 +325,10 @@ plt.savefig("imgs/acf_ret")
 plt.show()
 # %%
 
+'''
+Autocorrelation plots
+'''
+
 fig, (ax1, ax2) = plt.subplots(
         ncols=1, nrows=2, figsize=(12,7), sharex=True, gridspec_kw = {'wspace':0, 'hspace':0.15})
         
@@ -332,9 +358,14 @@ plt.show()
 
 # %%
 
+'''
+Simulation study for the stochastic trader ratio versus the number of 
+crashes
+'''
+
 N_range = [10, 50, 250]
 pi1_range = np.linspace(0.9, 0, 30)
-sims = 20
+sims = 1
 
 Npi_res = np.zeros((sims, len(N_range), pi1_range.shape[0]))
 
@@ -342,7 +373,6 @@ for j, N_val in enumerate(N_range):
     for i, pi1_val in enumerate(pi1_range):
 
         for k in range(sims):
-            print(N_val, pi1_val, k)
             G,P,N,S,X,D,T,U,C, initial_account_balance = simulation(trigger = False, bound = True, pd = 0.05, pe = 0.01,
                     ph = 0.0485, pa = 0.7, N0=1500, N1 = N_val, A = 4.5, a=1, h=1, 
                     pi1 = pi1_val, pi2 = 0.9 - pi1_val, pi3 = 0.1)
@@ -351,15 +381,12 @@ for j, N_val in enumerate(N_range):
 
 # %%
 
-np.save("arrs/crashes_pi1_N", Npi_res)
-# %%
+'''
+plotting results of str vs crashes study
+'''
 
-##NA_res = np.load("crashes_A_N.npy")
 mn = np.mean(Npi_res, axis=0)
 sd = 1.96 * np.std(Npi_res, axis=0) / np.sqrt(sims)
-
-print(mn)
-print(sd)
 
 for z in range(mn.shape[0]):
     plt.plot(pi1_range, mn[z,:], label=f"Traders = {N_range[z]}")
@@ -371,5 +398,3 @@ plt.grid(alpha=0.2)
 plt.xlim(0.4, 0.9)
 plt.savefig("imgs/crash_simulation_pi1_N", dpi = 300)
 plt.show()
-
-# %%
