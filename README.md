@@ -22,7 +22,15 @@ For the code part, over time we have realised that the best way to work with jup
     - ```3D_plot_generator``` - the file used to generate 3D plots of heat capacity and entropy of the system.
     - ```OTHER``` - the folder with all other code/functions used in exploration but never used for final submission/presentation.
 
-- ```code/alex```
+- ```code/charel```
+    - ```3Dplots_videos``` - used to generate 3D plots and videos / gifs
+    - ```bartolozzi2004``` - first exploration of bartolozzis algorithm before implementing it in python files
+    - ```bartolozziTEST``` - testing implemented the bartolozzi algorithm
+    - ```CA_plots``` - used to generate plots with all data of the model
+    - ```datacollapse``` - experimenting with collapsing all the crashes at one point and seeing whether metrics like eigenvectors from correlation matrix or mutual information matrix can be used as early warning signal
+    - ```future_market_sim``` - experimenting with generating futures markets for various stocks. This was done to see if we can generate derivatives of stock that we could then measure the informatino transmision on
+    - ```wednesdayTEST``` - testing our model
+
 
 
 
