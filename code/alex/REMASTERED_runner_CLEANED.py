@@ -43,15 +43,15 @@ def moving_average(x, w):
 def visualiseNICE(G, P, N, S, X, D, T, U, C):
     """
     Generate a nice visualization of all raw data collected from the simulation
-    - G: matrix N1xN0 containing the activity of agents (+ buy) (- sell) (0 inactive)
-    - P: matrix N1xN0 portfolio of each agent overtime
-    - N: matrix N1xN0 networth of each agent over time
-    - S: array 1XN0 with prices of stock 
-    - X: array 1XN0 with log returns of stock
-    - D: matrix N1xN0 decision of each agent over time
-    - T: stack
-    - U: sum_called_shares
-    - C: margin calls
+    - G: matrix (N1xN0) containing the activity of agents (+ buy) (- sell) (0 inactive)
+    - P: matrix (N1xN0) portfolio of each agent overtime
+    - N: matrix (N1xN0) networth of each agent over time
+    - S: array (N1xN0) with prices of stock 
+    - X: array (N1xN0) with log returns of stock
+    - D: matrix (N1xN0) decision of each agent over time
+    - T: array (1xN0) stack
+    - U: array (1xN0) sum_called_shares
+    - C: matrix (N1xN0) margin calls
     """
     fig, (ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8) = plt.subplots(
         ncols=1, nrows=8, figsize=(12,12), sharex=True, gridspec_kw = 
@@ -159,13 +159,17 @@ def parallel_simulation_phase_transition(PAR1_range, PAR2_range, PAR3_range, SIM
 
             crashes[i,j] = count_crashes(X, treshold, window=5)
             S_arrays[i,j] = S
+            if j == 9:
+                print("T:", T.shape)
+                print("U:", U.shape)
+                print("C:", C.shape)
 
     return (crashes, S_arrays)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # PAR1 - pi1 changes investigation
 # Parameter ranges - where we keep the ratio of PAR2 and PAR3 constant
-PAR1_range = np.linspace(0, 1 ,50)
+PAR1_range = np.linspace(0, 1, 50)
 PAR2_range = (1-PAR1_range)*0.3 
 PAR3_range = (1-PAR1_range)*0.2
 
