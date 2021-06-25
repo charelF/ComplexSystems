@@ -3,7 +3,13 @@ import pandas as pd
 from numba import njit, prange, jit
 
 def gen_hurst_exponent(time_series, num_q, max_lag=200):
-    """Returns the Hurst Exponent of the time series"""
+    """
+    Returns the Hurst Exponent of the time series taised to the power 
+    - time_series: the series of to find exponent values for 
+    - num_q: the density of q (equivelent temperature)
+    - max_lag: the maximum value of tau to fit for 
+        - default = 200
+    """
     
     lags = range(2, max_lag)
     q_vals = np.linspace(1, 5, num_q) 
@@ -18,6 +24,14 @@ def gen_hurst_exponent(time_series, num_q, max_lag=200):
     return reg/q_vals, q_vals
 
 def fractal_latent_heat(series, tau, N):
+    '''
+    fractal latent heat values for a given time series
+    - series: the vector for which to calculate latent heat values
+    - tau: the time offset to use for calculating normalised probability
+    - N: the number of chunks into which we will split the array 
+        - this is equivelent the the number of normalised probability measures we will end up with
+    '''
+
     ## how many chunks
     splt = np.array_split(series, N)
     q_vals = np.linspace(-6, 6, 30)
@@ -54,6 +68,13 @@ def fractal_latent_heat(series, tau, N):
     return q_vals, C_q, S_q
 
 def fractal_latent_heat_alex(series, tau, N):
+    '''
+    this is equivelent to the function above except that now 
+    the values for the scaling exponent X_q are also returned
+    - series: the vector for which to calculate latent heat values
+    - tau: the time offset to use for calculating normalised probability
+    - N: the number of chunks into which we will split the array 
+    '''
     splt = np.array_split(series, N)
     q_vals = np.linspace(-50, 50, 1000)
 
