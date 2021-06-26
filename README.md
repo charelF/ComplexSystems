@@ -36,7 +36,7 @@ For the code part, over time we have realised that the best way to work with jup
     - ```bartolozzi2004.ipynb``` - recreation of the methods and diagrams from the original Bartolozzi paper 
     - ```crash_indic.py``` - the original (first iteration) crash indicator and associated simulation studies. There were significantly more studies here than included in the presentation. 
     -  ```presentation_plots.py``` - simulation studies and associated plots used in the application. Autocorrelation functions, distributions, simulations etc
-    -  ```presentation_plots.py``` - a previous version of the model which makes use of fixed distributions of agents 
+    -  ```presentation_plots.py``` - a previous version of the model which makes use of fixed distributions of agents and early test of series stylised facts
     - ```OTHER``` - collection of other files, experiments and studies from the project. 
 
 
