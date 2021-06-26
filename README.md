@@ -16,7 +16,7 @@ For the code part, over time we have realised that the best way to work with jup
     - ```wednesdaySPEED``` - the fast Numba implementation of our final algorithm. It is called wednesday as it was created on a wednesday and we were unable to find a better name
     - ```bartolozziSPEED``` - the fast Numba implementation of the original algorithm by Bartolozzi et al.
     - ```original_implementation``` - the original implementation of the algorithm by Bartolozzi et al.
-    - ```analytic_tools``` - various functions and code snippets used all throughout the project
+    - ```analytic_tools``` - various functions and code snippets used throughout the project including methods for hurst exponent and thermodynamic fractality
 
 - ```code/alex```:
     - ```3D_plot_generator``` - the file used to generate 3D plots of heat capacity and entropy of the system.
@@ -34,9 +34,9 @@ For the code part, over time we have realised that the best way to work with jup
 
 - ```code/james```
     - ```bartolozzi2004.ipynb``` - recreation of the methods and diagrams from the original Bartolozzi paper 
-    - ```crash_indic.py``` - the original (first iteration) crash indicator and associated simulation studies. There were significantly more studies here than included in the presentation. 
-    -  ```presentation_plots.py``` - simulation studies and associated plots used in the application. Autocorrelation functions, distributions, simulations etc
-    -  ```presentation_plots.py``` - a previous version of the model which makes use of fixed distributions of agents and early test of series stylised facts
+    - ```crash_indic.py``` - first iteration crash indicator and associated simulation studies. There were significantly more studies here than included in the presentation. 
+    -  ```presentation_plots.py``` - simulation studies and associated plots used in the application. Autocorrelation functions, distributions, simulations, hurst exponent application etc
+    -  ```CA_distribution.py``` - a previous version of the model which makes use of fixed distributions of agents and early test of series stylised facts
     - ```OTHER``` - collection of other files, experiments and studies from the project. 
 
 
