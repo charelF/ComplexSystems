@@ -32,8 +32,9 @@ For the code part, over time we have realised that the best way to work with jup
     - ```wednesdayTEST``` - testing our model
     - ```OTHER``` - collection of various files used throughout the project
 
-
-
+- ```code/zhiyu```
+    - ```ZZ_Final``` - collection of system analysis: periodic boundary condition for the grid, fitting the cluster size distribution with power law with respect to different grid sizes, multifractal analysis from canessa and exploration of complexity measure with correlation matrix.
+    - ```OTHER``` - collection of different analysis approaches
 
 
 
