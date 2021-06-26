@@ -117,7 +117,7 @@ ax3.set_ylabel(r"$q \cdot H(q)$")
 ax3.set_xlabel(r"$q$")
 ax3.legend()
 
-plt.savefig("imgs/img_hurst_exp_triple", dpi=300)
+plt.savefig("../../imgs/img_hurst_exp_triple", dpi=300)
 # %%
 
 '''
@@ -134,7 +134,7 @@ plt.grid(alpha=0.2)
 plt.ylabel(r"$q \cdot H(q)$")
 plt.xlabel(r"$q$")
 plt.legend()
-plt.savefig("imgs/img_hurst_exp_triple", dpi=300)
+plt.savefig("../../imgs/img_hurst_exp_triple", dpi=300)
 plt.show()
 
 # %%
@@ -202,7 +202,7 @@ ax.set_ylabel(r'$\rho$')
 ax.grid(alpha=0.2, which="major")
 ax.grid(alpha=0.05, which="minor")
 ax.legend()
-plt.savefig("imgs/power_law_old_vs_new")
+plt.savefig("../../imgs/power_law_old_vs_new")
 plt.show()
 
 # %%
@@ -239,7 +239,7 @@ plt.legend()
 plt.grid(alpha=0.2)
 plt.ylabel(r"$\rho$")
 plt.xlabel(r"$r$")
-plt.savefig("imgs/standardised_dist_plot", dpi=300)
+plt.savefig("../../imgs/standardised_dist_plot", dpi=300)
 plt.show()
 
     
@@ -272,7 +272,7 @@ plt.legend(loc=2)
 plt.ylabel("Number of Crashes")
 plt.xlabel("A")
 plt.grid(alpha=0.2)
-plt.savefig("imgs/crash_simulation_A_N_2", dpi = 300)
+plt.savefig("../../imgs/crash_simulation_A_N_2", dpi = 300)
 plt.xlim(2.5, 10)
 plt.show()
 
@@ -321,7 +321,7 @@ plt.xlabel("Lag")
 plt.ylabel("Autocorrelations")
 plt.grid(alpha=0.2)
 plt.legend()
-plt.savefig("imgs/acf_ret")
+plt.savefig("../../imgs/acf_ret")
 plt.show()
 # %%
 
@@ -352,7 +352,7 @@ ax2.legend()
 
 fig.align_ylabels()
 plt.xlabel("Lag")
-plt.savefig("imgs/acf_double_plot", dpi=300)
+plt.savefig("../../imgs/acf_double_plot", dpi=300)
 ##plt.xlim(200, 500)
 plt.show()
 
@@ -396,5 +396,5 @@ plt.ylabel("Number of Crashes")
 plt.xlabel("Stochastic Trader Ratio")
 plt.grid(alpha=0.2)
 plt.xlim(0.4, 0.9)
-plt.savefig("imgs/crash_simulation_pi1_N", dpi = 300)
+plt.savefig("../../imgs/crash_simulation_pi1_N", dpi = 300)
 plt.show()
