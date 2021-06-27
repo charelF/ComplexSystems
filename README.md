@@ -67,3 +67,7 @@ Entropy Estimators: https://github.com/gregversteeg/NPEET
 ## Presentation slides (with animation)
 
 https://docs.google.com/presentation/d/1u3DZv6CPe8-uUDXZ-hRgJqaDLkvPnk9ZJOXSTKMUTGc/edit?usp=sharing
+
+## Github repository
+
+https://github.com/charelF/ComplexSystems
