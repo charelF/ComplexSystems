@@ -1,7 +1,8 @@
 # ComplexSystems
 
-A cellular automata
+Our project focuses on analysing stock market crash dynamics using a cellular automaton. This repository contains the code necessary to recreate our model, plots and simulation studies. You can run the basic model by executing the interactive python file in ```code/shared/wednesdaySPEED```. To reproduce specific plots or simulations, see the "Files and Folders" index below for the location of appropriate notebook.
 
+Note that the data required to generate the plots involving the S&P 500 is not included in this submission. This is because the returns data used has been provided to us on the condition that it is not shared. If you wish to create these plots, please contact us and we can seek explicit permission from the data provider. 
 
 ## Files and Folders
 
