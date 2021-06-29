@@ -52,7 +52,6 @@ For the code part, over time we have realised that the best way to work with jup
 |------------|------------|
 | ![complex](img/CA_small.png) | ![complex](img/CA_large.png) |
 
-Yielding interesting phenomena
 
 | Heat Capacity | Entropy |
 |------------|------------|
